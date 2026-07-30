@@ -1,19 +1,22 @@
 from app.database.database import Base, engine
 
-# Import all models here
-from app.models.customer import Customer
-from app.models.product import Product
-from app.models.order import Order
-from app.models.order_item import OrderItem
-from app.models.payment import Payment
-from app.models.shipping import Shipping
+from app.models import (
+    Customer,
+    Product,
+    Order,
+    OrderItem,
+    Payment,
+    Shipping,
+    Supplier,
+    Category,
+    Store,
+    Inventory,
+)
 
 
 def create_tables():
     print("Creating database tables...")
-
     Base.metadata.create_all(bind=engine)
-
     print("All tables created successfully!")
 
 

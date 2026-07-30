@@ -1,10 +1,9 @@
-from dotenv import load_dotenv
-import os
+from pathlib import Path
 
-load_dotenv()
+BASE_DIR = Path(__file__).resolve().parents[2]
 
-POSTGRES_USER = os.getenv("POSTGRES_USER")
-POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
-POSTGRES_DB = os.getenv("POSTGRES_DB")
-POSTGRES_HOST = os.getenv("POSTGRES_HOST")
-POSTGRES_PORT = os.getenv("POSTGRES_PORT")
+RAW_DATA_DIR = BASE_DIR / "data" / "raw"
+
+LOG_DIR = BASE_DIR / "logs"
+
+BATCH_SIZE = 1000

@@ -1,73 +1,53 @@
-# 🛒 Retail Data Engineering Platform
+Retail Data Engineering Platform
 
-## 📖 Overview
+End-to-end data engineering platform built with
+Python • PostgreSQL • Airflow • Kafka • Spark • Docker
 
-An end-to-end modern Data Engineering project that simulates a real-world retail analytics platform.
+---------------------------------------------------
 
-This project demonstrates how raw retail data is ingested, processed, transformed, stored, and visualized using industry-standard tools.
+Architecture Diagram
+                Retail Data Engineering Platform
 
-## 🚀 Features
+                  Batch Pipeline
+      ┌─────────────────────────────────────┐
+      │                                     │
+CSV Generator ─► ETL ─► Airflow ─► PostgreSQL
+      │                                     │
+      └─────────────────────────────────────┘
 
-- Generate realistic retail data
-- Batch ETL pipelines
-- Real-time streaming with Apache Kafka
-- Workflow orchestration using Apache Airflow
-- Large-scale data processing with Apache Spark
-- PostgreSQL relational database
-- AWS S3 cloud storage
-- Snowflake Data Warehouse
-- Interactive Power BI Dashboard
-- Dockerized environment
-- CI/CD using GitHub Actions
 
----
+               Streaming Pipeline
+      ┌─────────────────────────────────────┐
+      │                                     │
+Order Generator ─► Kafka ─► Consumer ─► PostgreSQL
+      │                                     │
+      └─────────────────────────────────────┘
 
-## 🛠️ Tech Stack
 
-- Python
-- SQL
-- PostgreSQL
-- Apache Kafka
-- Apache Spark
-- Apache Airflow
-- Docker
-- AWS S3
-- Snowflake
-- Power BI
-- GitHub Actions
+               Future Analytics
+                     │
+                     ▼
+                  Spark
+                     │
+                     ▼
+                 Snowflake
+                     │
+                     ▼
+                  Power BI
+Project Overview
 
----
+Tech Stack
 
-## 📂 Project Structure
+Features
 
-```
-retail-data-engineering-platform/
-│
-├── airflow/
-├── dashboard/
-├── data/
-├── database/
-├── docs/
-├── etl/
-├── images/
-├── kafka/
-├── scripts/
-├── spark/
-├── tests/
-├── warehouse/
-└── README.md
-```
+Project Structure
 
----
+Installation
 
-## 📌 Project Status
+Pipeline Walkthrough
 
-🚧 Currently under development.
+Screenshots
 
-This repository is being built step by step as a production-style Data Engineering project.
+Future Improvements
 
----
-
-## 📄 License
-
-MIT License
+Author

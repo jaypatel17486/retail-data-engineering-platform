@@ -1,3 +1,4 @@
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 
@@ -6,19 +7,20 @@ class BaseRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def add(self, obj):
-        self.db.add(obj)
+    def truncate(self, table_name: str):
+
+        self.db.execute(
+            text(f"TRUNCATE TABLE {table_name} RESTART IDENTITY CASCADE")
+        )
+
         self.db.commit()
-        self.db.refresh(obj)
-        return obj
 
     def add_many(self, objects):
-        self.db.add_all(objects)
-        self.db.commit()
 
-    def get_all(self, model):
-        return self.db.query(model).all()
+        try:
+            self.db.add_all(objects)
+            self.db.commit()
 
-    def delete(self, obj):
-        self.db.delete(obj)
-        self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise

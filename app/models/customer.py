@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy.orm import relationship
 
 from app.database.database import Base
 
@@ -7,10 +8,12 @@ class Customer(Base):
     __tablename__ = "customers"
 
     customer_id = Column(Integer, primary_key=True)
-    first_name = Column(String(100))
-    last_name = Column(String(100))
-    email = Column(String(255), unique=True)
+    first_name = Column(String(100), nullable=False)
+    last_name = Column(String(100), nullable=False)
+    email = Column(String(255), unique=True, nullable=False)
     phone = Column(String(50))
     city = Column(String(100))
     state = Column(String(10))
     created_at = Column(DateTime)
+
+    orders = relationship("Order", back_populates="customer")
