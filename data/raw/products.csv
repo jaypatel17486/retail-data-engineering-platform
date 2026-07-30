@@ -1,0 +1,25 @@
+product_id,product_name,category,price,stock_quantity
+1,Laptop,Electronics,1102.32,451
+2,Smartphone,Electronics,196.65,332
+3,Monitor,Electronics,280.46,227
+4,Keyboard,Electronics,270.35,130
+5,Mouse,Electronics,1069.64,62
+6,Tablet,Electronics,1481.87,351
+7,Smartwatch,Electronics,41.66,409
+8,Chair,Home,717.93,490
+9,Table,Home,832.24,142
+10,Lamp,Home,1429.43,492
+11,Sofa,Home,1382.98,355
+12,Curtains,Home,366.87,82
+13,Football,Sports,1346.94,360
+14,Basketball,Sports,1012.94,261
+15,Tennis Racket,Sports,133.88,297
+16,Yoga Mat,Sports,159.62,357
+17,Python Programming,Books,1464.72,493
+18,SQL Guide,Books,46.86,267
+19,Data Engineering,Books,811.0,70
+20,Machine Learning,Books,1852.62,499
+21,T-Shirt,Clothing,1550.02,119
+22,Jeans,Clothing,416.69,204
+23,Jacket,Clothing,1528.97,302
+24,Shoes,Clothing,569.25,372
