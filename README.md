@@ -1,53 +1,25 @@
-Retail Data Engineering Platform
+# Retail Data Engineering Platform
 
-End-to-end data engineering platform built with
-Python • PostgreSQL • Airflow • Kafka • Spark • Docker
+## Project Overview
 
----------------------------------------------------
+## Architecture
 
-Architecture Diagram
-                Retail Data Engineering Platform
+## Features
 
-                  Batch Pipeline
-      ┌─────────────────────────────────────┐
-      │                                     │
-CSV Generator ─► ETL ─► Airflow ─► PostgreSQL
-      │                                     │
-      └─────────────────────────────────────┘
+## Tech Stack
 
+## Project Structure
 
-               Streaming Pipeline
-      ┌─────────────────────────────────────┐
-      │                                     │
-Order Generator ─► Kafka ─► Consumer ─► PostgreSQL
-      │                                     │
-      └─────────────────────────────────────┘
+## Batch Pipeline
 
+## Streaming Pipeline
 
-               Future Analytics
-                     │
-                     ▼
-                  Spark
-                     │
-                     ▼
-                 Snowflake
-                     │
-                     ▼
-                  Power BI
-Project Overview
+## Screenshots
 
-Tech Stack
+## Installation
 
-Features
+## Running the Project
 
-Project Structure
+## Future Improvements
 
-Installation
-
-Pipeline Walkthrough
-
-Screenshots
-
-Future Improvements
-
-Author
+## Author

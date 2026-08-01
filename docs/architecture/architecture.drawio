@@ -1,0 +1,65 @@
+                          Retail Data Engineering Platform
+
+                         +------------------------------+
+                         |      Data Sources            |
+                         |------------------------------|
+                         | Faker Generator             |
+                         | CSV Files                   |
+                         | Retail Event Generator      |
+                         +--------------+--------------+
+                                        |
+                   +--------------------+--------------------+
+                   |                                         |
+                   v                                         v
+
+        +--------------------------+          +--------------------------+
+        |     Batch Pipeline       |          |   Streaming Pipeline     |
+        |--------------------------|          |--------------------------|
+        | ETL Extract              |          | Kafka Producer           |
+        | Validation               |          | Kafka Topic              |
+        | Transform                |          | Kafka Consumer           |
+        | Generic Loader           |          | PostgreSQL Writer        |
+        +------------+-------------+          +------------+-------------+
+                     |                                     |
+                     v                                     |
+              +-------------+                             |
+              |  Airflow    |                             |
+              | DAG         |                             |
+              +------+------+
+                     |
+                     +--------------------------+
+                                                |
+                                                v
+                                   +---------------------------+
+                                   |      PostgreSQL           |
+                                   |---------------------------|
+                                   | customers                |
+                                   | products                 |
+                                   | orders                   |
+                                   | payments                 |
+                                   | inventory                |
+                                   | streaming_orders         |
+                                   +------------+-------------+
+                                                |
+                                                v
+                                   +---------------------------+
+                                   | Apache Spark             |
+                                   | Structured Streaming     |
+                                   | Batch Analytics          |
+                                   +------------+-------------+
+                                                |
+                                                v
+                                   +---------------------------+
+                                   | Snowflake Data Warehouse |
+                                   | Fact Tables             |
+                                   | Dimension Tables        |
+                                   +------------+-------------+
+                                                |
+                                                v
+                                   +---------------------------+
+                                   | Power BI Dashboard       |
+                                   | Sales                   |
+                                   | Customers               |
+                                   | Inventory               |
+                                   | Revenue                 |
+                                   +---------------------------+
