@@ -135,3 +135,24 @@
 2026-07-30 09:31:20,367 | INFO | Processing 5000 records
 2026-07-30 09:31:20,736 | INFO | shipping.csv loaded successfully!
 2026-07-30 09:31:20,736 | INFO | ============================================================
+2026-08-01 23:51:57,857 | INFO | ============================================================
+2026-08-01 23:51:57,859 | INFO | Starting ETL Pipeline for categories.csv
+2026-08-01 23:51:57,861 | INFO | ============================================================
+2026-08-01 23:51:57,871 | INFO | Validating dataset
+2026-08-01 23:51:57,882 | INFO | Removing duplicates
+2026-08-01 23:51:57,883 | INFO | Replacing null values
+2026-08-01 23:51:57,883 | INFO | Processing 10 records
+2026-08-01 23:52:03,108 | INFO | ============================================================
+2026-08-01 23:52:03,109 | INFO | Starting ETL Pipeline for categories.csv
+2026-08-01 23:52:03,109 | INFO | ============================================================
+2026-08-01 23:52:03,117 | INFO | Validating dataset
+2026-08-01 23:52:03,121 | INFO | Removing duplicates
+2026-08-01 23:52:03,122 | INFO | Replacing null values
+2026-08-01 23:52:03,122 | INFO | Processing 10 records
+2026-08-02 00:00:08,233 | INFO | ============================================================
+2026-08-02 00:00:08,233 | INFO | Starting ETL Pipeline for categories.csv
+2026-08-02 00:00:08,233 | INFO | ============================================================
+2026-08-02 00:00:08,235 | INFO | Validating dataset
+2026-08-02 00:00:08,236 | INFO | Removing duplicates
+2026-08-02 00:00:08,236 | INFO | Replacing null values
+2026-08-02 00:00:08,236 | INFO | Processing 10 records
