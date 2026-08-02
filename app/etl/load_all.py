@@ -1,4 +1,4 @@
-from app.config.pipeline_config import PIPELINE_TABLES
+from config.pipeline_config import PIPELINE_TABLES
 from app.etl.pipeline import Pipeline
 
 

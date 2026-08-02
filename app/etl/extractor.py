@@ -1,4 +1,4 @@
-from app.config.settings import RAW_DATA_DIR
+from config.settings import RAW_DATA_DIR
 import pandas as pd
 
 class Extractor:

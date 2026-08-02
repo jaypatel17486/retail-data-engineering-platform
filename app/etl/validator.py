@@ -1,4 +1,4 @@
-from app.utils.logger import logger
+from utils.logger import app_logger
 
 
 class Validator:
@@ -6,7 +6,7 @@ class Validator:
     @staticmethod
     def validate(df):
 
-        logger.info("Validating dataset")
+        app_logger.info("Validating dataset")
 
         if df.empty:
             raise ValueError("Dataset is empty.")

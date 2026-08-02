@@ -1,4 +1,4 @@
-from app.utils.logger import logger
+from utils.logger import app_logger
 
 
 class Transformer:
@@ -6,11 +6,11 @@ class Transformer:
     @staticmethod
     def transform(df):
 
-        logger.info("Removing duplicates")
+        app_logger.info("Removing duplicates")
 
         df = df.drop_duplicates()
 
-        logger.info("Replacing null values")
+        app_logger.info("Replacing null values")
 
         df = df.fillna("Unknown")
 

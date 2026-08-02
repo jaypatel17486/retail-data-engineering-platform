@@ -1,0 +1,26 @@
+                Retail Platform
+
+          +----------------------+
+          | Data Generator        |
+          +----------------------+
+                     |
+                     v
+             Apache Kafka
+                     |
+                     v
+      Spark Structured Streaming
+                     |
+                     v
+         PostgreSQL Landing Zone
+                     |
+                     v
+             Apache Airflow
+                     |
+        ----------------------------
+        |                          |
+        v                          v
+ Load Dimensions           Load Fact Sales
+        |                          |
+        ---------- Warehouse -------
+                     |
+             Analytics Views

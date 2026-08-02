@@ -39,7 +39,11 @@ services:
       AIRFLOW__WEBSERVER__SECRET_KEY: my-super-secret-airflow-key
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
 
-      DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/retaildb
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: retaildb
+      DB_USER: postgres
+      DB_PASSWORD: postgres
 
     volumes:
       - ./airflow/dags:/opt/airflow/dags
@@ -78,7 +82,11 @@ services:
       AIRFLOW__WEBSERVER__SECRET_KEY: my-super-secret-airflow-key
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
 
-      DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/retaildb
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: retaildb
+      DB_USER: postgres
+      DB_PASSWORD: postgres
 
     volumes:
       - ./airflow/dags:/opt/airflow/dags
@@ -104,7 +112,11 @@ services:
       AIRFLOW__WEBSERVER__SECRET_KEY: my-super-secret-airflow-key
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
 
-      DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/retaildb
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: retaildb
+      DB_USER: postgres
+      DB_PASSWORD: postgres
 
     volumes:
       - ./airflow/dags:/opt/airflow/dags

@@ -1,44 +1,63 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import *
-from pyspark.sql.types import *
+from pyspark.sql.functions import (
+    col,
+    from_json,
+    current_date,
+)
+from pyspark.sql.types import (
+    StructType,
+    StructField,
+    IntegerType,
+    DoubleType,
+    StringType,
+)
 
+from streaming.analytics import (
+    build_product_summary,
+    build_customer_summary,
+    build_sales_summary,
+)
+
+from streaming.database_writer import write_dataframe
+
+
+# ----------------------------------------
+# Spark Session
+# ----------------------------------------
 
 spark = (
     SparkSession.builder
-    .appName("RetailStreamingPipeline")
+    .appName("Retail Streaming Pipeline")
     .config(
         "spark.jars.packages",
         ",".join([
             "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.6",
-            "org.postgresql:postgresql:42.7.3"
+            "org.postgresql:postgresql:42.7.3",
         ])
     )
     .getOrCreate()
 )
 
-POSTGRES_URL = "jdbc:postgresql://localhost:5432/retaildb"
+spark.sparkContext.setLogLevel("WARN")
 
-POSTGRES_PROPERTIES = {
-    "user": "postgres",
-    "password": "postgres",
-    "driver": "org.postgresql.Driver",
-}
+# ----------------------------------------
+# Kafka Schema
+# ----------------------------------------
 
-
-# Kafka schema
 order_schema = StructType([
-    StructField("order_id", IntegerType()),
-    StructField("customer_id", IntegerType()),
-    StructField("product_id", IntegerType()),
-    StructField("quantity", IntegerType()),
-    StructField("price", DoubleType()),
-    StructField("payment_method", StringType()),
-    StructField("status", StringType()),
-    StructField("timestamp", StringType())
+    StructField("order_id", IntegerType(), True),
+    StructField("customer_id", IntegerType(), True),
+    StructField("product_id", IntegerType(), True),
+    StructField("quantity", IntegerType(), True),
+    StructField("price", DoubleType(), True),
+    StructField("payment_method", StringType(), True),
+    StructField("status", StringType(), True),
+    StructField("timestamp", StringType(), True),
 ])
 
-
-# Read Kafka stream
+# ----------------------------------------
+# Read Kafka Stream
+# ----------------------------------------
 
 orders = (
     spark.readStream
@@ -53,23 +72,20 @@ orders = (
     )
     .option(
         "startingOffsets",
-        "earliest"
+        "latest"
     )
     .load()
 )
 
-
-# Convert Kafka value to string
+# ----------------------------------------
+# Convert JSON
+# ----------------------------------------
 
 orders_json = (
-    orders
-    .selectExpr(
+    orders.selectExpr(
         "CAST(value AS STRING)"
     )
 )
-
-
-# Parse JSON
 
 parsed_orders = (
     orders_json
@@ -82,21 +98,19 @@ parsed_orders = (
     .select("data.*")
 )
 
-
-# Data validation
+# ----------------------------------------
+# Validation
+# ----------------------------------------
 
 clean_orders = (
     parsed_orders
-    .filter(
-        col("quantity") > 0
-    )
-    .filter(
-        col("price") > 0
-    )
+    .filter(col("quantity") > 0)
+    .filter(col("price") > 0)
 )
 
-
-# Calculate revenue
+# ----------------------------------------
+# Revenue
+# ----------------------------------------
 
 final_orders = (
     clean_orders
@@ -106,36 +120,93 @@ final_orders = (
     )
 )
 
+# ----------------------------------------
+# Process Each Micro Batch
+# ----------------------------------------
 
-# Output stream
-def write_to_postgres(batch_df, batch_id):
+def process_batch(batch_df, batch_id):
+
     if batch_df.isEmpty():
+        print(f"Batch {batch_id}: Empty")
         return
 
-    (
-        batch_df.write
-        .jdbc(
-            url=POSTGRES_URL,
-            table="streaming_orders",
-            mode="append",
-            properties=POSTGRES_PROPERTIES,
+    print(f"\n========== Batch {batch_id} ==========\n")
+
+    batch_df.show(10, False)
+
+    # ----------------------------------
+    # Write Raw Orders
+    # ----------------------------------
+
+    write_dataframe(
+        batch_df,
+        "streaming_orders",
+        mode="append",
+    )
+
+    # ----------------------------------
+    # Product Analytics
+    # ----------------------------------
+
+    product_summary = build_product_summary(batch_df)
+
+    product_summary.show()
+
+    write_dataframe(
+        product_summary,
+        "product_summary",
+        mode="overwrite",
+    )
+
+    # ----------------------------------
+    # Customer Analytics
+    # ----------------------------------
+
+    customer_summary = build_customer_summary(batch_df)
+
+    customer_summary.show()
+
+    write_dataframe(
+        customer_summary,
+        "customer_summary",
+        mode="overwrite",
+    )
+
+    # ----------------------------------
+    # Sales Analytics
+    # ----------------------------------
+
+    sales_summary = (
+        build_sales_summary(batch_df)
+        .withColumn(
+            "summary_date",
+            current_date(),
         )
     )
 
-    print(f"Batch {batch_id} written to PostgreSQL")
+    sales_summary.show()
 
+    write_dataframe(
+        sales_summary,
+        "sales_summary",
+        mode="overwrite",
+    )
+
+    print(f"Batch {batch_id} completed.")
+
+# ----------------------------------------
+# Streaming Query
+# ----------------------------------------
 
 query = (
-    final_orders
-    .writeStream
+    final_orders.writeStream
     .outputMode("append")
     .option(
         "checkpointLocation",
-        "./checkpoints/streaming_orders"
+        "./checkpoints/orders"
     )
-    .foreachBatch(write_to_postgres)
+    .foreachBatch(process_batch)
     .start()
 )
-
 
 query.awaitTermination()
