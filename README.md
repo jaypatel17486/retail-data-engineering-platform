@@ -42,7 +42,7 @@ This project simulates a production-grade retail analytics platform by combining
 # 🏗 System Architecture
 
 <p align="center">
-    <img src="docs/architecture.drawio" width="100%">
+    <img src="docs/architecture.png" width="100%">
 </p>
 
 The architecture follows a modern data engineering design where retail data is generated, streamed through Apache Kafka, processed using Apache Spark Structured Streaming, orchestrated with Apache Airflow, and stored in a PostgreSQL Star Schema data warehouse.
@@ -175,7 +175,7 @@ Analytics Views
 ### Warehouse Schema
 
 <p align="center">
-    <img src="docs/warehouse star schema.md" width="100%">
+    <img src="docs/warehouse star schema.png" width="100%">
 </p>
 
 ### Fact Table
@@ -225,7 +225,7 @@ Complete
 # 📋 Airflow Pipeline
 
 <p align="center">
-    <img src="docs/airflow retail_etl.png.png" width="100%">
+    <img src="docs/airflow retail_etl.png" width="100%">
 </p>
 
 The **retail_etl** DAG automates the warehouse refresh.
