@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Logs
+logs/*.log
+
+# Spark
+checkpoints/
+
+# Airflow
+airflow/logs/
+
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
+
+# Environment
+.env
+
+# Spark Structured Streaming
+checkpoints/
