@@ -5783,3 +5783,77 @@ File Path                                         PID  Runtime      # DAGs    # 
 /opt/airflow/dags/warehouse_pipeline.py           275  0.03s             1           0  0.13s           2026-08-02T09:33:26                      10
 /opt/airflow/dags/retail_streaming_pipeline.py    276  0.01s             1           0  0.12s           2026-08-02T09:33:26                      12
 ================================================================================
+[2026-08-02T09:34:27.462+0000] {manager.py:997} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                                         PID  Runtime      # DAGs    # Errors  Last Runtime    Last Run               Last # of DB Queries
+----------------------------------------------  -----  ---------  --------  ----------  --------------  -------------------  ----------------------
+/opt/airflow/dags/warehouse_pipeline.py           277  0.01s             1           0  0.15s           2026-08-02T09:33:57                      10
+/opt/airflow/dags/retail_streaming_pipeline.py    278  0.00s             1           0  0.13s           2026-08-02T09:33:57                      12
+================================================================================
+[2026-08-02T09:34:57.983+0000] {manager.py:997} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                                         PID  Runtime      # DAGs    # Errors  Last Runtime    Last Run               Last # of DB Queries
+----------------------------------------------  -----  ---------  --------  ----------  --------------  -------------------  ----------------------
+/opt/airflow/dags/warehouse_pipeline.py           279  0.01s             1           0  0.12s           2026-08-02T09:34:27                      10
+/opt/airflow/dags/retail_streaming_pipeline.py    280  0.00s             1           0  0.12s           2026-08-02T09:34:27                      12
+================================================================================
+[2026-08-02T09:35:28.430+0000] {manager.py:997} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                                         PID  Runtime      # DAGs    # Errors  Last Runtime    Last Run               Last # of DB Queries
+----------------------------------------------  -----  ---------  --------  ----------  --------------  -------------------  ----------------------
+/opt/airflow/dags/warehouse_pipeline.py           281  0.01s             1           0  0.11s           2026-08-02T09:34:58                      10
+/opt/airflow/dags/retail_streaming_pipeline.py    282  0.00s             1           0  0.10s           2026-08-02T09:34:58                      12
+================================================================================
+[2026-08-02T09:35:30.566+0000] {manager.py:821} INFO - Searching for files in /opt/airflow/dags
+[2026-08-02T09:35:30.575+0000] {manager.py:824} INFO - There are 2 files in /opt/airflow/dags
+[2026-08-02T09:35:58.938+0000] {manager.py:997} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                                         PID  Runtime      # DAGs    # Errors  Last Runtime    Last Run               Last # of DB Queries
+----------------------------------------------  -----  ---------  --------  ----------  --------------  -------------------  ----------------------
+/opt/airflow/dags/warehouse_pipeline.py           283  0.02s             1           0  0.13s           2026-08-02T09:35:28                      10
+/opt/airflow/dags/retail_streaming_pipeline.py    284  0.01s             1           0  0.13s           2026-08-02T09:35:28                      12
+================================================================================
+[2026-08-02T09:36:29.356+0000] {manager.py:997} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                                         PID  Runtime      # DAGs    # Errors  Last Runtime    Last Run               Last # of DB Queries
+----------------------------------------------  -----  ---------  --------  ----------  --------------  -------------------  ----------------------
+/opt/airflow/dags/warehouse_pipeline.py           285  0.03s             1           0  0.18s           2026-08-02T09:35:59                      10
+/opt/airflow/dags/retail_streaming_pipeline.py    286  0.01s             1           0  0.17s           2026-08-02T09:35:59                      12
+================================================================================
+[2026-08-02T09:36:59.765+0000] {manager.py:997} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                                         PID  Runtime      # DAGs    # Errors  Last Runtime    Last Run               Last # of DB Queries
+----------------------------------------------  -----  ---------  --------  ----------  --------------  -------------------  ----------------------
+/opt/airflow/dags/warehouse_pipeline.py           287  0.02s             1           0  0.15s           2026-08-02T09:36:29                      10
+/opt/airflow/dags/retail_streaming_pipeline.py    288  0.00s             1           0  0.13s           2026-08-02T09:36:29                      12
+================================================================================
+[2026-08-02T09:37:30.299+0000] {manager.py:997} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                                         PID  Runtime      # DAGs    # Errors  Last Runtime    Last Run               Last # of DB Queries
+----------------------------------------------  -----  ---------  --------  ----------  --------------  -------------------  ----------------------
+/opt/airflow/dags/warehouse_pipeline.py           289  0.03s             1           0  0.11s           2026-08-02T09:36:59                      10
+/opt/airflow/dags/retail_streaming_pipeline.py    290  0.01s             1           0  0.10s           2026-08-02T09:36:59                      12
+================================================================================
+[2026-08-02T09:38:00.826+0000] {manager.py:997} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                                         PID  Runtime      # DAGs    # Errors  Last Runtime    Last Run               Last # of DB Queries
+----------------------------------------------  -----  ---------  --------  ----------  --------------  -------------------  ----------------------
+/opt/airflow/dags/warehouse_pipeline.py           291  0.02s             1           0  0.16s           2026-08-02T09:37:30                      10
+/opt/airflow/dags/retail_streaming_pipeline.py    292  0.00s             1           0  0.14s           2026-08-02T09:37:30                      12
+================================================================================
