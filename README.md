@@ -21,56 +21,31 @@ This project simulates a production-grade retail analytics platform by combining
 
 ---
 
-# 🏗 Architecture
+## 📚 Table of Contents
 
-```mermaid
-flowchart TD
+- [Overview](#-overview)
+- [System Architecture](#-system-architecture)
+- [Features](#-features)
+- [Technology Stack](#-technology-stack)
+- [Project Structure](#-project-structure)
+- [Data Flow](#-data-flow)
+- [Data Warehouse](#-data-warehouse)
+- [Airflow Pipeline](#-airflow-pipeline)
+- [Data Quality](#-data-quality)
+- [Audit Logging](#-audit-logging)
+- [Docker Services](#-docker-services)
+- [Getting Started](#-getting-started)
+- [Future Improvements](#-future-improvements)
 
-A[Retail Data Generator]
+---
 
-B[Apache Kafka]
+# 🏗 System Architecture
 
-C[Spark Structured Streaming]
+<p align="center">
+    <img src="docs/architecture.drawio" width="100%">
+</p>
 
-D[Landing Table<br/>streaming_orders]
-
-E[Apache Airflow<br/>retail_etl]
-
-F[Load Dimensions]
-
-G[Load Fact Sales]
-
-H[(dim_customer)]
-
-I[(dim_product)]
-
-J[(dim_date)]
-
-K[(fact_sales)]
-
-L[Analytics Views]
-
-M[(etl_audit)]
-
-A --> B
-B --> C
-C --> D
-
-D --> E
-
-E --> F
-E --> G
-
-F --> H
-F --> I
-F --> J
-
-G --> K
-
-K --> L
-
-E --> M
-```
+The architecture follows a modern data engineering design where retail data is generated, streamed through Apache Kafka, processed using Apache Spark Structured Streaming, orchestrated with Apache Airflow, and stored in a PostgreSQL Star Schema data warehouse.
 
 ---
 
@@ -195,21 +170,19 @@ Analytics Views
 
 ---
 
-# 🏢 Data Warehouse
+# 📈 Data Warehouse
 
-The warehouse follows a **Star Schema**.
+### Warehouse Schema
 
-## Dimension Tables
+<p align="center">
+    <img src="docs/warehouse star schema.md" width="100%">
+</p>
 
-- dim_customer
-- dim_product
-- dim_date
+### Fact Table
 
-## Fact Table
-
-- fact_sales
-
-The warehouse is refreshed through modular ETL loaders orchestrated by Apache Airflow.
+<p align="center">
+    <img src="docs/fact table.png" width="100%">
+</p>
 
 ---
 
@@ -251,7 +224,11 @@ Complete
 
 # 📋 Airflow Pipeline
 
-The Airflow DAG **retail_etl** automates the warehouse refresh.
+<p align="center">
+    <img src="docs/airflow retail_etl.png.png" width="100%">
+</p>
+
+The **retail_etl** DAG automates the warehouse refresh.
 
 Pipeline:
 
@@ -293,6 +270,10 @@ Invalid records can be captured for further analysis.
 
 # 📑 Audit Logging
 
+<p align="center">
+    <img src="docs/ETL audit.png" width="100%">
+</p>
+
 Every ETL execution is logged into:
 
 ```text
@@ -311,6 +292,10 @@ Information captured:
 ---
 
 # 🐳 Docker Services
+
+<p align="center">
+    <img src="docs/docker containers.png" width="100%">
+</p>
 
 The platform runs entirely inside Docker.
 
