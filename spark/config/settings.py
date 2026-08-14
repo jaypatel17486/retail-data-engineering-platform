@@ -1,10 +1,10 @@
 KAFKA_BOOTSTRAP = "kafka:9092"
 
-KAFKA_TOPIC = "orders"
+KAFKA_TOPIC = "fluxguard-events"
 
-CHECKPOINT_LOCATION = "/tmp/checkpoints"
+CHECKPOINT_LOCATION = "/tmp/fluxguard-checkpoints"
 
-APP_NAME = "RetailStreaming"
+APP_NAME = "FluxGuardStreaming"
 
 POSTGRES_URL = "jdbc:postgresql://postgres:5432/retaildb"
 
