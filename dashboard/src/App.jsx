@@ -7,20 +7,29 @@ import {
   getRiskDistribution,
   getRecentActivity,
   getFraudAlerts,
-} from "./services/api";
+} from "./services/api.js";
 
 import {
   LineChart,
   Line,
   XAxis,
   YAxis,
+  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
+  Cell,
 } from "recharts";
 
 import "./App.css";
+
+
+const RISK_COLORS = {
+  LOW: "#22c55e",
+  MEDIUM: "#f59e0b",
+  HIGH: "#ef4444",
+};
 
 
 function App() {
@@ -33,6 +42,7 @@ function App() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
 
   async function loadDashboard() {
@@ -60,10 +70,14 @@ function App() {
       setActivity(activityData);
       setAlerts(alertData);
 
+      setLastUpdated(new Date());
       setError(null);
     } catch (err) {
       console.error(err);
-      setError("Unable to connect to FluxGuard API.");
+
+      setError(
+        "Unable to connect to the FluxGuard API."
+      );
     } finally {
       setLoading(false);
     }
@@ -84,8 +98,12 @@ function App() {
 
   if (loading) {
     return (
-      <div className="center">
-        Loading FluxGuard...
+      <div className="loading-screen">
+        <div className="loader" />
+
+        <h2>FluxGuard</h2>
+
+        <p>Loading fraud intelligence...</p>
       </div>
     );
   }
@@ -94,81 +112,154 @@ function App() {
   return (
     <div className="app">
 
-      <header>
+      {/* HEADER */}
+
+      <header className="header">
+
         <div>
-          <h1>FluxGuard</h1>
-          <p>
-            Real-Time E-Commerce Analytics &
-            Fraud Detection
-          </p>
+          <div className="brand">
+            <div className="logo">FG</div>
+
+            <div>
+              <h1>FluxGuard</h1>
+
+              <p>
+                Real-Time E-Commerce Fraud Intelligence
+              </p>
+            </div>
+          </div>
         </div>
 
-        <span className="live">
-          ● SYSTEM LIVE
-        </span>
+
+        <div className="system-status">
+
+          <div className="live-status">
+            <span className="live-dot" />
+            SYSTEM LIVE
+          </div>
+
+          {lastUpdated && (
+            <small>
+              Updated{" "}
+              {lastUpdated.toLocaleTimeString()}
+            </small>
+          )}
+
+        </div>
+
       </header>
 
 
       {error && (
-        <div className="error">
+        <div className="error-banner">
           {error}
         </div>
       )}
 
 
-      <section className="cards">
+      {/* KPI CARDS */}
 
-        <Card
-          title="Total Revenue"
-          value={`$${Number(
-            overview.total_revenue || 0
-          ).toLocaleString()}`}
+      <section className="kpi-grid">
+
+        <MetricCard
+          label="TOTAL REVENUE"
+          value={formatCurrency(
+            overview.total_revenue
+          )}
+          detail="Completed payments"
         />
 
-        <Card
-          title="Transactions"
-          value={
-            overview.total_transactions || 0
-          }
+        <MetricCard
+          label="TRANSACTIONS"
+          value={formatNumber(
+            overview.total_transactions
+          )}
+          detail="Processed events"
         />
 
-        <Card
-          title="Fraud Alerts"
-          value={overview.fraud_alerts || 0}
+        <MetricCard
+          label="FRAUD ALERTS"
+          value={formatNumber(
+            overview.fraud_alerts
+          )}
+          detail="Requires attention"
+          variant="warning"
         />
 
-        <Card
-          title="Blocked"
-          value={overview.blocked || 0}
+        <MetricCard
+          label="BLOCKED"
+          value={formatNumber(
+            overview.blocked
+          )}
+          detail="High-risk transactions"
+          variant="danger"
         />
 
       </section>
 
 
-      <section className="charts">
+      {/* CHARTS */}
 
-        <div className="panel">
+      <section className="chart-grid">
 
-          <h2>Revenue Trend</h2>
+        <div className="panel chart-panel">
+
+          <PanelHeader
+            title="Revenue Trend"
+            subtitle="Completed payment volume"
+          />
 
           <ResponsiveContainer
             width="100%"
-            height={280}
+            height={300}
           >
             <LineChart data={revenue}>
 
-              <XAxis
-                dataKey="hour"
-                hide
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="#263247"
               />
 
-              <YAxis />
+              <XAxis
+                dataKey="hour"
+                tickFormatter={formatHour}
+                stroke="#718096"
+                tick={{
+                  fill: "#718096",
+                  fontSize: 11,
+                }}
+              />
 
-              <Tooltip />
+              <YAxis
+                stroke="#718096"
+                tick={{
+                  fill: "#718096",
+                  fontSize: 11,
+                }}
+                tickFormatter={(value) =>
+                  `$${value}`
+                }
+              />
+
+              <Tooltip
+                contentStyle={{
+                  background: "#111827",
+                  border: "1px solid #334155",
+                  borderRadius: "8px",
+                }}
+                formatter={(value) => [
+                  formatCurrency(value),
+                  "Revenue",
+                ]}
+              />
 
               <Line
                 type="monotone"
                 dataKey="revenue"
+                stroke="#38bdf8"
+                strokeWidth={3}
+                dot={false}
+                activeDot={{ r: 5 }}
               />
 
             </LineChart>
@@ -177,66 +268,145 @@ function App() {
         </div>
 
 
-        <div className="panel">
+        <div className="panel chart-panel">
 
-          <h2>Risk Distribution</h2>
+          <PanelHeader
+            title="Risk Distribution"
+            subtitle="Hybrid fraud classifications"
+          />
 
-          <ResponsiveContainer
-            width="100%"
-            height={280}
-          >
-            <PieChart>
+          {risk.length > 0 ? (
 
-              <Pie
-                data={risk}
-                dataKey="count"
-                nameKey="risk_level"
-                outerRadius={100}
-                label
-              />
+            <ResponsiveContainer
+              width="100%"
+              height={300}
+            >
+              <PieChart>
 
-              <Tooltip />
+                <Pie
+                  data={risk}
+                  dataKey="count"
+                  nameKey="risk_level"
+                  innerRadius={65}
+                  outerRadius={100}
+                  paddingAngle={4}
+                >
 
-            </PieChart>
-          </ResponsiveContainer>
+                  {risk.map((item) => (
+                    <Cell
+                      key={item.risk_level}
+                      fill={
+                        RISK_COLORS[
+                          item.risk_level
+                        ] || "#64748b"
+                      }
+                    />
+                  ))}
+
+                </Pie>
+
+                <Tooltip
+                  contentStyle={{
+                    background: "#111827",
+                    border:
+                      "1px solid #334155",
+                    borderRadius: "8px",
+                  }}
+                />
+
+              </PieChart>
+            </ResponsiveContainer>
+
+          ) : (
+            <EmptyState text="No risk data yet" />
+          )}
+
+
+          <div className="risk-legend">
+
+            {["LOW", "MEDIUM", "HIGH"].map(
+              (level) => {
+
+                const item = risk.find(
+                  (entry) =>
+                    entry.risk_level === level
+                );
+
+                return (
+                  <div
+                    className="legend-item"
+                    key={level}
+                  >
+                    <span
+                      className="legend-dot"
+                      style={{
+                        background:
+                          RISK_COLORS[level],
+                      }}
+                    />
+
+                    <span>{level}</span>
+
+                    <strong>
+                      {item?.count || 0}
+                    </strong>
+                  </div>
+                );
+              }
+            )}
+
+          </div>
 
         </div>
 
       </section>
 
 
+      {/* PAYMENT HEALTH */}
+
       <section className="panel">
 
-        <h2>Payment Performance</h2>
+        <PanelHeader
+          title="Payment Health"
+          subtitle="Current payment processing performance"
+        />
 
-        <div className="payment-stats">
+        <div className="payment-grid">
 
-          <span>
-            Successful:
-            {" "}
-            {payments.successful || 0}
-          </span>
+          <PaymentMetric
+            label="Successful"
+            value={payments.successful || 0}
+          />
 
-          <span>
-            Failed:
-            {" "}
-            {payments.failed || 0}
-          </span>
+          <PaymentMetric
+            label="Failed"
+            value={payments.failed || 0}
+          />
 
-          <span>
-            Success Rate:
-            {" "}
-            {payments.success_rate || 0}%
-          </span>
+          <PaymentMetric
+            label="Success Rate"
+            value={`${payments.success_rate || 0}%`}
+          />
+
+          <PaymentMetric
+            label="Failure Rate"
+            value={`${payments.failure_rate || 0}%`}
+          />
 
         </div>
 
       </section>
 
 
+      {/* LIVE TRANSACTIONS */}
+
       <section className="panel">
 
-        <h2>Live Transactions</h2>
+        <PanelHeader
+          title="Live Transactions"
+          subtitle="Latest events processed by FluxGuard"
+          live
+        />
 
         <div className="table-wrapper">
 
@@ -244,55 +414,89 @@ function App() {
 
             <thead>
               <tr>
-                <th>Order</th>
-                <th>Customer</th>
-                <th>Amount</th>
-                <th>Payment</th>
-                <th>ML Probability</th>
-                <th>Risk</th>
-                <th>Decision</th>
+                <th>ORDER</th>
+                <th>CUSTOMER</th>
+                <th>AMOUNT</th>
+                <th>PAYMENT</th>
+                <th>ML PROBABILITY</th>
+                <th>RISK</th>
+                <th>DECISION</th>
+                <th>TIME</th>
               </tr>
             </thead>
 
             <tbody>
 
-              {activity.map((item) => (
+              {activity.length === 0 ? (
 
-                <tr key={item.event_id}>
-
-                  <td>{item.order_id}</td>
-
-                  <td>{item.customer_id}</td>
-
-                  <td>
-                    $
-                    {Number(
-                      item.amount || 0
-                    ).toFixed(2)}
+                <tr>
+                  <td
+                    colSpan="8"
+                    className="empty-row"
+                  >
+                    Waiting for transactions...
                   </td>
-
-                  <td>{item.event_type}</td>
-
-                  <td>
-                    {item.ml_probability != null
-                      ? Number(
-                          item.ml_probability
-                        ).toFixed(3)
-                      : "-"
-                    }
-                  </td>
-
-                  <td>
-                    {item.final_risk || "-"}
-                  </td>
-
-                  <td>
-                    {item.final_decision || "-"}
-                  </td>
-
                 </tr>
 
-              ))}
+              ) : (
+
+                activity.map((item) => (
+
+                  <tr key={item.event_id}>
+
+                    <td className="order-id">
+                      {item.order_id}
+                    </td>
+
+                    <td>
+                      {item.customer_id}
+                    </td>
+
+                    <td className="amount">
+                      {formatCurrency(
+                        item.amount
+                      )}
+                    </td>
+
+                    <td>
+                      <PaymentBadge
+                        type={item.event_type}
+                      />
+                    </td>
+
+                    <td>
+                      <ProbabilityBar
+                        value={
+                          item.ml_probability
+                        }
+                      />
+                    </td>
+
+                    <td>
+                      <RiskBadge
+                        risk={item.final_risk}
+                      />
+                    </td>
+
+                    <td>
+                      <DecisionBadge
+                        decision={
+                          item.final_decision
+                        }
+                      />
+                    </td>
+
+                    <td className="timestamp">
+                      {formatTime(
+                        item.event_timestamp
+                      )}
+                    </td>
+
+                  </tr>
+
+                ))
+
+              )}
 
             </tbody>
 
@@ -303,60 +507,331 @@ function App() {
       </section>
 
 
+      {/* FRAUD ALERTS */}
+
       <section className="panel">
 
-        <h2>Fraud Alerts</h2>
+        <PanelHeader
+          title="Recent Fraud Alerts"
+          subtitle="Transactions requiring investigation"
+        />
 
         {alerts.length === 0 ? (
 
-          <p>No active fraud alerts.</p>
+          <EmptyState
+            text="No active fraud alerts"
+          />
 
         ) : (
 
-          alerts.map((alert) => (
+          <div className="alert-list">
 
-            <div
-              className="alert"
-              key={alert.id}
-            >
+            {alerts.map((alert) => (
 
-              <strong>
-                {alert.order_id}
-              </strong>
+              <div
+                className="fraud-alert"
+                key={alert.id}
+              >
 
-              <span>
-                ${Number(
-                  alert.amount || 0
-                ).toFixed(2)}
-              </span>
+                <div className="alert-main">
 
-              <span>
-                {alert.risk_level}
-              </span>
+                  <div
+                    className={`alert-icon ${
+                      alert.risk_level
+                        ?.toLowerCase() || ""
+                    }`}
+                  >
+                    !
+                  </div>
 
-              <span>
-                {alert.decision}
-              </span>
+                  <div>
+                    <strong>
+                      {alert.order_id}
+                    </strong>
 
-            </div>
+                    <p>
+                      Customer{" "}
+                      {alert.customer_id}
+                    </p>
+                  </div>
 
-          ))
+                </div>
+
+
+                <div className="alert-amount">
+                  {formatCurrency(
+                    alert.amount
+                  )}
+                </div>
+
+
+                <RiskBadge
+                  risk={alert.risk_level}
+                />
+
+
+                <DecisionBadge
+                  decision={alert.decision}
+                />
+
+              </div>
+
+            ))}
+
+          </div>
 
         )}
 
       </section>
+
+
+      <footer>
+
+        <span>
+          FluxGuard v1.0
+        </span>
+
+        <span>
+          Kafka • Spark • PyTorch • PostgreSQL • FastAPI
+        </span>
+
+      </footer>
 
     </div>
   );
 }
 
 
-function Card({ title, value }) {
+/* ========================================================
+   COMPONENTS
+======================================================== */
+
+
+function MetricCard({
+  label,
+  value,
+  detail,
+  variant = "",
+}) {
   return (
-    <div className="card">
-      <p>{title}</p>
-      <h2>{value}</h2>
+    <div className={`metric-card ${variant}`}>
+
+      <span className="metric-label">
+        {label}
+      </span>
+
+      <strong className="metric-value">
+        {value}
+      </strong>
+
+      <span className="metric-detail">
+        {detail}
+      </span>
+
     </div>
+  );
+}
+
+
+function PanelHeader({
+  title,
+  subtitle,
+  live = false,
+}) {
+  return (
+    <div className="panel-header">
+
+      <div>
+        <h2>{title}</h2>
+        <p>{subtitle}</p>
+      </div>
+
+      {live && (
+        <span className="live-pill">
+          <span className="live-dot" />
+          LIVE
+        </span>
+      )}
+
+    </div>
+  );
+}
+
+
+function PaymentMetric({
+  label,
+  value,
+}) {
+  return (
+    <div className="payment-metric">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+
+function RiskBadge({ risk }) {
+  if (!risk) {
+    return (
+      <span className="badge neutral">
+        -
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className={`badge risk-${risk.toLowerCase()}`}
+    >
+      {risk}
+    </span>
+  );
+}
+
+
+function DecisionBadge({ decision }) {
+  if (!decision) {
+    return (
+      <span className="badge neutral">
+        -
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className={`badge decision-${decision.toLowerCase()}`}
+    >
+      {decision}
+    </span>
+  );
+}
+
+
+function PaymentBadge({ type }) {
+  const success =
+    type === "payment_completed";
+
+  return (
+    <span
+      className={
+        success
+          ? "payment-status success"
+          : "payment-status failed"
+      }
+    >
+      {success ? "COMPLETED" : "FAILED"}
+    </span>
+  );
+}
+
+
+function ProbabilityBar({ value }) {
+  if (value == null) {
+    return <span>-</span>;
+  }
+
+  const probability = Number(value);
+
+  const percentage =
+    Math.min(
+      Math.max(probability * 100, 0),
+      100
+    );
+
+  return (
+    <div className="probability">
+
+      <span>
+        {probability.toFixed(3)}
+      </span>
+
+      <div className="probability-track">
+        <div
+          className="probability-fill"
+          style={{
+            width: `${percentage}%`,
+          }}
+        />
+      </div>
+
+    </div>
+  );
+}
+
+
+function EmptyState({ text }) {
+  return (
+    <div className="empty-state">
+      {text}
+    </div>
+  );
+}
+
+
+/* ========================================================
+   FORMATTERS
+======================================================== */
+
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat(
+    "en-US",
+    {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 2,
+    }
+  ).format(Number(value || 0));
+}
+
+
+function formatNumber(value) {
+  return Number(
+    value || 0
+  ).toLocaleString();
+}
+
+
+function formatTime(value) {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return date.toLocaleTimeString(
+    [],
+    {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    }
+  );
+}
+
+
+function formatHour(value) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleTimeString(
+    [],
+    {
+      hour: "numeric",
+    }
   );
 }
 

@@ -1,8 +1,10 @@
 import json
 import os
+import time
+from datetime import datetime, timezone
 
 import psycopg2
-from kafka import KafkaConsumer
+from kafka import KafkaConsumer, KafkaProducer
 
 from fraud.engine import analyze_transaction
 
@@ -19,6 +21,11 @@ KAFKA_BOOTSTRAP_SERVERS = os.getenv(
 KAFKA_TOPIC = os.getenv(
     "KAFKA_TOPIC",
     "fluxguard-events",
+)
+
+KAFKA_DLQ_TOPIC = os.getenv(
+    "KAFKA_DLQ_TOPIC",
+    "fluxguard-dead-letter",
 )
 
 POSTGRES_HOST = os.getenv(
@@ -48,10 +55,22 @@ POSTGRES_PASSWORD = os.getenv(
 
 
 # =========================================================
-# DATABASE
+# RETRY CONFIGURATION
+# =========================================================
+
+MAX_RETRIES = 3
+RETRY_DELAY_SECONDS = 2
+
+
+# =========================================================
+# POSTGRESQL CONNECTION
 # =========================================================
 
 def create_database_connection():
+    """
+    Create a PostgreSQL connection.
+    """
+
     print("Connecting to PostgreSQL...")
 
     connection = psycopg2.connect(
@@ -70,10 +89,156 @@ def create_database_connection():
 
 
 # =========================================================
-# STORE TRANSACTION
+# KAFKA CONSUMER
+# =========================================================
+
+def create_consumer():
+    """
+    Create the main FluxGuard Kafka consumer.
+
+    Auto commit is disabled because FluxGuard commits
+    offsets only after successful processing.
+    """
+
+    print("Connecting to Kafka consumer...")
+
+    consumer = KafkaConsumer(
+        KAFKA_TOPIC,
+
+        bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
+
+        value_deserializer=lambda value: json.loads(
+            value.decode("utf-8")
+        ),
+
+        group_id="fluxguard-fraud-engine",
+
+        auto_offset_reset="latest",
+
+        enable_auto_commit=False,
+    )
+
+    print("Connected to Kafka consumer.")
+
+    return consumer
+
+
+# =========================================================
+# DEAD-LETTER PRODUCER
+# =========================================================
+
+def create_dlq_producer():
+    """
+    Create the Kafka producer used for the dead-letter queue.
+    """
+
+    print("Connecting to Kafka DLQ producer...")
+
+    producer = KafkaProducer(
+        bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
+
+        value_serializer=lambda value: json.dumps(
+            value
+        ).encode("utf-8"),
+
+        acks="all",
+
+        retries=5,
+    )
+
+    print("Connected to Kafka DLQ producer.")
+
+    return producer
+
+
+# =========================================================
+# SEND EVENT TO DLQ
+# =========================================================
+
+def send_to_dlq(
+    producer,
+    event,
+    message,
+    reason,
+    error=None,
+):
+    """
+    Preserve an event that cannot be processed.
+
+    The original event and Kafka metadata are included so
+    the failure can be investigated or replayed later.
+    """
+
+    dlq_event = {
+        "original_event": event,
+
+        "failure_reason": reason,
+
+        "error_type": (
+            type(error).__name__
+            if error is not None
+            else None
+        ),
+
+        "error_message": (
+            str(error)
+            if error is not None
+            else None
+        ),
+
+        "source": {
+            "topic": message.topic,
+            "partition": message.partition,
+            "offset": message.offset,
+        },
+
+        "failed_at": datetime.now(
+            timezone.utc
+        ).isoformat(),
+    }
+
+    future = producer.send(
+        KAFKA_DLQ_TOPIC,
+        value=dlq_event,
+    )
+
+    # Wait until Kafka confirms that the DLQ message
+    # was successfully written.
+    metadata = future.get(
+        timeout=10
+    )
+
+    print()
+    print(
+        f"[DLQ] Event sent successfully"
+    )
+
+    print(
+        f"[DLQ] Topic     : "
+        f"{metadata.topic}"
+    )
+
+    print(
+        f"[DLQ] Partition : "
+        f"{metadata.partition}"
+    )
+
+    print(
+        f"[DLQ] Offset    : "
+        f"{metadata.offset}"
+    )
+
+
+# =========================================================
+# SAVE TRANSACTION
 # =========================================================
 
 def save_transaction(cursor, event):
+    """
+    Save the payment transaction.
+
+    event_id is unique, making replayed Kafka events safe.
+    """
 
     cursor.execute(
         """
@@ -92,11 +257,15 @@ def save_transaction(cursor, event):
             failure_reason,
             event_timestamp
         )
+
         VALUES (
-            %s, %s, %s, %s, %s, %s, %s,
-            %s, %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s,
+            %s, %s, %s, %s, %s,
+            %s, %s, %s
         )
-        ON CONFLICT (event_id) DO NOTHING
+
+        ON CONFLICT (event_id)
+        DO NOTHING
         """,
         (
             event["event_id"],
@@ -104,23 +273,45 @@ def save_transaction(cursor, event):
             event["customer_id"],
             event["event_type"],
             event["amount"],
-            event.get("currency", "USD"),
-            event.get("payment_method"),
-            event.get("device_id"),
-            event.get("ip_address"),
-            event.get("billing_country"),
-            event.get("shipping_country"),
-            event.get("failure_reason"),
+            event.get(
+                "currency",
+                "USD",
+            ),
+            event.get(
+                "payment_method"
+            ),
+            event.get(
+                "device_id"
+            ),
+            event.get(
+                "ip_address"
+            ),
+            event.get(
+                "billing_country"
+            ),
+            event.get(
+                "shipping_country"
+            ),
+            event.get(
+                "failure_reason"
+            ),
             event["timestamp"],
         ),
     )
 
 
 # =========================================================
-# STORE FRAUD PREDICTION
+# SAVE FRAUD PREDICTION
 # =========================================================
 
-def save_prediction(cursor, event, result):
+def save_prediction(
+    cursor,
+    event,
+    result,
+):
+    """
+    Save rule, ML, and hybrid fraud predictions.
+    """
 
     cursor.execute(
         """
@@ -136,20 +327,28 @@ def save_prediction(cursor, event, result):
             final_risk,
             final_decision
         )
+
         VALUES (
             %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s
         )
+
+        ON CONFLICT (event_id)
+        DO NOTHING
         """,
         (
             event["event_id"],
             event["order_id"],
             event["customer_id"],
+
             result["rule_score"],
             result["rule_risk"],
+
             result["ml_probability"],
             result["ml_risk"],
+
             result["hybrid_score"],
+
             result["final_risk"],
             result["final_decision"],
         ),
@@ -157,12 +356,19 @@ def save_prediction(cursor, event, result):
 
 
 # =========================================================
-# STORE FRAUD ALERT
+# SAVE FRAUD ALERT
 # =========================================================
 
-def save_alert(cursor, event, result):
+def save_alert(
+    cursor,
+    event,
+    result,
+):
+    """
+    Create an alert only when the final decision is
+    REVIEW or BLOCK.
+    """
 
-    # Only REVIEW/BLOCK transactions create an alert.
     if result["final_decision"] == "APPROVE":
         return
 
@@ -176,14 +382,20 @@ def save_alert(cursor, event, result):
             fraud_score,
             decision
         )
+
         VALUES (
-            %s, %s, %s, %s, %s, %s
+            %s, %s, %s,
+            %s, %s, %s
         )
+
+        ON CONFLICT (event_id)
+        DO NOTHING
         """,
         (
             event["event_id"],
             event["order_id"],
             event["customer_id"],
+
             result["final_risk"],
             result["hybrid_score"],
             result["final_decision"],
@@ -195,9 +407,19 @@ def save_alert(cursor, event, result):
 # PROCESS PAYMENT
 # =========================================================
 
-def process_payment(connection, event):
+def process_payment(
+    connection,
+    event,
+):
+    """
+    Analyze and persist one payment event.
 
-    result = analyze_transaction(event)
+    All database operations occur inside one transaction.
+    """
+
+    result = analyze_transaction(
+        event
+    )
 
     cursor = connection.cursor()
 
@@ -219,7 +441,10 @@ def process_payment(connection, event):
             result,
         )
 
+        # Only commit when every database operation succeeds.
         connection.commit()
+
+        return result
 
     except Exception:
         connection.rollback()
@@ -228,36 +453,177 @@ def process_payment(connection, event):
     finally:
         cursor.close()
 
-    return result
+
+# =========================================================
+# PROCESS WITH RETRIES
+# =========================================================
+
+def process_with_retry(
+    connection,
+    event,
+):
+    """
+    Retry processing when a temporary error occurs.
+    """
+
+    last_error = None
+
+    for attempt in range(
+        1,
+        MAX_RETRIES + 1,
+    ):
+        try:
+            return process_payment(
+                connection,
+                event,
+            )
+
+        except Exception as error:
+            last_error = error
+
+            print()
+            print(
+                f"[RETRY] Event: "
+                f"{event.get('event_id')}"
+            )
+
+            print(
+                f"[RETRY] Attempt: "
+                f"{attempt}/{MAX_RETRIES}"
+            )
+
+            print(
+                f"[RETRY] Error: "
+                f"{type(error).__name__}: "
+                f"{error}"
+            )
+
+            if attempt < MAX_RETRIES:
+                print(
+                    f"[RETRY] Waiting "
+                    f"{RETRY_DELAY_SECONDS} "
+                    f"seconds..."
+                )
+
+                time.sleep(
+                    RETRY_DELAY_SECONDS
+                )
+
+    raise last_error
 
 
 # =========================================================
-# KAFKA CONSUMER
+# EVENT VALIDATION
 # =========================================================
 
-def create_consumer():
+def get_missing_fields(event):
+    """
+    Return required fields missing from an event.
+    """
 
-    print("Connecting to Kafka...")
-
-    consumer = KafkaConsumer(
-        KAFKA_TOPIC,
-
-        bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
-
-        value_deserializer=lambda value: json.loads(
-            value.decode("utf-8")
-        ),
-
-        group_id="fluxguard-fraud-engine",
-
-        auto_offset_reset="latest",
-
-        enable_auto_commit=True,
+    required_fields = (
+        "event_id",
+        "order_id",
+        "customer_id",
+        "event_type",
+        "amount",
+        "timestamp",
     )
 
-    print("Connected to Kafka.")
+    return [
+        field
+        for field in required_fields
+        if event.get(field) is None
+    ]
 
-    return consumer
+
+# =========================================================
+# DISPLAY RESULT
+# =========================================================
+
+def print_result(
+    event,
+    result,
+    message,
+):
+    """
+    Display a successfully processed payment.
+    """
+
+    print()
+    print("-" * 70)
+
+    print(
+        f"Event ID     : "
+        f"{event['event_id']}"
+    )
+
+    print(
+        f"Order        : "
+        f"{event['order_id']}"
+    )
+
+    print(
+        f"Customer     : "
+        f"{event['customer_id']}"
+    )
+
+    print(
+        f"Amount       : "
+        f"${float(event['amount']):.2f}"
+    )
+
+    print(
+        f"Payment      : "
+        f"{event['event_type']}"
+    )
+
+    print(
+        f"Rule Score   : "
+        f"{result['rule_score']}"
+    )
+
+    print(
+        f"Rule Risk    : "
+        f"{result['rule_risk']}"
+    )
+
+    print(
+        f"ML Prob.     : "
+        f"{result['ml_probability']:.4f}"
+    )
+
+    print(
+        f"ML Risk      : "
+        f"{result['ml_risk']}"
+    )
+
+    print(
+        f"Hybrid Score : "
+        f"{result['hybrid_score']:.4f}"
+    )
+
+    print(
+        f"Final Risk   : "
+        f"{result['final_risk']}"
+    )
+
+    print(
+        f"Decision     : "
+        f"{result['final_decision']}"
+    )
+
+    print(
+        f"Kafka        : "
+        f"partition={message.partition}, "
+        f"offset={message.offset}"
+    )
+
+    print(
+        "Kafka Commit : SUCCESS"
+    )
+
+    print("-" * 70)
 
 
 # =========================================================
@@ -265,118 +631,359 @@ def create_consumer():
 # =========================================================
 
 def run():
+    """
+    Run the FluxGuard real-time fraud consumer.
+    """
 
     print()
     print("=" * 70)
-    print("FLUXGUARD REAL-TIME FRAUD ENGINE")
+    print(
+        "FLUXGUARD REAL-TIME FRAUD ENGINE"
+    )
     print("=" * 70)
 
-    print(f"Kafka     : {KAFKA_BOOTSTRAP_SERVERS}")
-    print(f"Topic     : {KAFKA_TOPIC}")
     print(
-        f"Postgres  : "
-        f"{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+        f"Kafka Server : "
+        f"{KAFKA_BOOTSTRAP_SERVERS}"
+    )
+
+    print(
+        f"Event Topic  : "
+        f"{KAFKA_TOPIC}"
+    )
+
+    print(
+        f"DLQ Topic    : "
+        f"{KAFKA_DLQ_TOPIC}"
+    )
+
+    print(
+        f"PostgreSQL   : "
+        f"{POSTGRES_HOST}:"
+        f"{POSTGRES_PORT}/"
+        f"{POSTGRES_DB}"
+    )
+
+    print(
+        "Consumer     : "
+        "fluxguard-fraud-engine"
+    )
+
+    print(
+        "Auto Commit  : DISABLED"
+    )
+
+    print(
+        f"Max Retries  : "
+        f"{MAX_RETRIES}"
     )
 
     print("=" * 70)
 
-    connection = create_database_connection()
-
-    consumer = create_consumer()
-
-    print()
-    print("Waiting for payment events...")
-    print()
+    connection = None
+    consumer = None
+    dlq_producer = None
 
     try:
+        # =================================================
+        # CONNECT
+        # =================================================
+
+        connection = (
+            create_database_connection()
+        )
+
+        consumer = create_consumer()
+
+        dlq_producer = (
+            create_dlq_producer()
+        )
+
+        print()
+        print(
+            "Waiting for payment events..."
+        )
+
+        print(
+            "Press Ctrl+C to stop."
+        )
+
+        # =================================================
+        # EVENT LOOP
+        # =================================================
 
         for message in consumer:
 
             event = message.value
 
-            # Ignore order_created events.
-            if event.get("event_type") not in (
+            # ---------------------------------------------
+            # IGNORE NON-PAYMENT EVENTS
+            # ---------------------------------------------
+
+            if event.get(
+                "event_type"
+            ) not in (
                 "payment_completed",
                 "payment_failed",
             ):
+                # This event has been intentionally handled.
+                consumer.commit()
+
                 continue
 
+            # ---------------------------------------------
+            # VALIDATE
+            # ---------------------------------------------
+
+            missing_fields = (
+                get_missing_fields(
+                    event
+                )
+            )
+
+            if missing_fields:
+                print()
+                print("=" * 70)
+                print("INVALID EVENT")
+                print("=" * 70)
+
+                print(
+                    f"Missing fields: "
+                    f"{missing_fields}"
+                )
+
+                print(
+                    f"Kafka partition: "
+                    f"{message.partition}"
+                )
+
+                print(
+                    f"Kafka offset: "
+                    f"{message.offset}"
+                )
+
+                try:
+                    # First preserve the event in the DLQ.
+                    send_to_dlq(
+                        dlq_producer,
+                        event,
+                        message,
+                        reason=(
+                            "missing_required_fields:"
+                            + ",".join(
+                                missing_fields
+                            )
+                        ),
+                    )
+
+                    # Only commit the original message after
+                    # the DLQ write succeeds.
+                    consumer.commit()
+
+                    print(
+                        "Original Kafka offset "
+                        "committed."
+                    )
+
+                except Exception as dlq_error:
+                    print()
+                    print(
+                        "[DLQ ERROR]"
+                    )
+
+                    print(
+                        f"{type(dlq_error).__name__}: "
+                        f"{dlq_error}"
+                    )
+
+                    print(
+                        "Original Kafka offset "
+                        "NOT committed."
+                    )
+
+                print("=" * 70)
+
+                continue
+
+            # ---------------------------------------------
+            # PROCESS VALID PAYMENT
+            # ---------------------------------------------
+
             try:
+                result = (
+                    process_with_retry(
+                        connection,
+                        event,
+                    )
+                )
 
-                result = process_payment(
-                    connection,
+                # IMPORTANT:
+                #
+                # PostgreSQL has already committed at this
+                # point. Now we advance Kafka.
+
+                consumer.commit()
+
+                print_result(
                     event,
+                    result,
+                    message,
                 )
-
-                print("-" * 70)
-
-                print(
-                    f"Order       : "
-                    f"{event['order_id']}"
-                )
-
-                print(
-                    f"Customer    : "
-                    f"{event['customer_id']}"
-                )
-
-                print(
-                    f"Amount      : "
-                    f"${event['amount']:.2f}"
-                )
-
-                print(
-                    f"Payment     : "
-                    f"{event['event_type']}"
-                )
-
-                print(
-                    f"Rule Score  : "
-                    f"{result['rule_score']}"
-                )
-
-                print(
-                    f"ML Prob.    : "
-                    f"{result['ml_probability']:.4f}"
-                )
-
-                print(
-                    f"Hybrid Score: "
-                    f"{result['hybrid_score']:.4f}"
-                )
-
-                print(
-                    f"Risk        : "
-                    f"{result['final_risk']}"
-                )
-
-                print(
-                    f"Decision    : "
-                    f"{result['final_decision']}"
-                )
-
-                print("-" * 70)
 
             except Exception as error:
+                # =========================================
+                # ALL PROCESSING RETRIES FAILED
+                # =========================================
+
+                print()
+                print("=" * 70)
+                print(
+                    "EVENT PROCESSING FAILED"
+                )
+                print("=" * 70)
 
                 print(
-                    f"Failed to process "
-                    f"{event.get('event_id')}: {error}"
+                    f"Event ID: "
+                    f"{event.get('event_id')}"
                 )
 
-    except KeyboardInterrupt:
+                print(
+                    f"Order ID: "
+                    f"{event.get('order_id')}"
+                )
 
+                print(
+                    f"Kafka partition: "
+                    f"{message.partition}"
+                )
+
+                print(
+                    f"Kafka offset: "
+                    f"{message.offset}"
+                )
+
+                print(
+                    f"Error: "
+                    f"{type(error).__name__}: "
+                    f"{error}"
+                )
+
+                # -----------------------------------------
+                # DEAD LETTER
+                # -----------------------------------------
+
+                try:
+                    send_to_dlq(
+                        dlq_producer,
+                        event,
+                        message,
+                        reason=(
+                            "processing_failed_"
+                            "after_retries"
+                        ),
+                        error=error,
+                    )
+
+                    # DLQ now safely owns the failed event.
+                    # Advance the source topic offset.
+                    consumer.commit()
+
+                    print()
+                    print(
+                        "Original Kafka offset "
+                        "committed after "
+                        "successful DLQ write."
+                    )
+
+                except Exception as dlq_error:
+                    # If DLQ itself fails, we intentionally
+                    # leave the original offset uncommitted.
+
+                    print()
+                    print(
+                        "DLQ WRITE FAILED"
+                    )
+
+                    print(
+                        f"{type(dlq_error).__name__}: "
+                        f"{dlq_error}"
+                    )
+
+                    print()
+                    print(
+                        "Original Kafka offset "
+                        "NOT committed."
+                    )
+
+                    print(
+                        "The source event may be "
+                        "redelivered."
+                    )
+
+                print("=" * 70)
+
+    except KeyboardInterrupt:
         print()
-        print("Stopping FluxGuard fraud engine...")
+        print("=" * 70)
+        print(
+            "Stopping FluxGuard fraud engine..."
+        )
+        print("=" * 70)
+
+    except Exception as error:
+        print()
+        print("=" * 70)
+        print(
+            "FLUXGUARD CONSUMER ERROR"
+        )
+        print("=" * 70)
+
+        print(
+            f"{type(error).__name__}: "
+            f"{error}"
+        )
+
+        print("=" * 70)
+
+        raise
 
     finally:
+        # =================================================
+        # CLEAN SHUTDOWN
+        # =================================================
 
-        consumer.close()
+        if consumer is not None:
+            print(
+                "Closing Kafka consumer..."
+            )
 
-        connection.close()
+            consumer.close()
 
-        print("FluxGuard fraud engine stopped.")
+        if dlq_producer is not None:
+            print(
+                "Closing DLQ producer..."
+            )
 
+            try:
+                dlq_producer.flush()
+            finally:
+                dlq_producer.close()
+
+        if connection is not None:
+            print(
+                "Closing PostgreSQL connection..."
+            )
+
+            connection.close()
+
+        print(
+            "FluxGuard fraud engine stopped."
+        )
+
+
+# =========================================================
+# ENTRY POINT
+# =========================================================
 
 if __name__ == "__main__":
     run()
