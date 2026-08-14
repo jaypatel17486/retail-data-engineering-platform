@@ -1,25 +1,64 @@
+# ==========================================
+# FluxGuard - Git Ignore
+# ==========================================
+
+# --------------------
+# Environment / Secrets
+# --------------------
+.env
+.env.*
+!.env.example
+
+# --------------------
 # Python
-__pycache__/
-*.pyc
+# --------------------
 .venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
 
-# Logs
-logs/*.log
-
-# Spark
-checkpoints/
-
-# Airflow
-airflow/logs/
-
+# --------------------
 # macOS
+# --------------------
 .DS_Store
 
-# VS Code
-.vscode/
+# --------------------
+# Logs
+# --------------------
+*.log
+logs/
+airflow/logs/
 
-# Environment
-.env
+# --------------------
+# Node / React / Vite
+# --------------------
+node_modules/
+dashboard/node_modules/
+dashboard/dist/
+dist/
 
-# Spark Structured Streaming
+# --------------------
+# Spark
+# --------------------
+spark-warehouse/
 checkpoints/
+.checkpoint/
+
+# --------------------
+# Generated ML Data
+# --------------------
+fraud/ml/transactions.csv
+
+# --------------------
+# IDE
+# --------------------
+.vscode/
+.idea/
+
+# --------------------
+# Temporary files
+# --------------------
+*.tmp
+*.temp
+pytest_error.txt
