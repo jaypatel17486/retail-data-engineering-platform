@@ -87,6 +87,7 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/airflow
       AIRFLOW__WEBSERVER__SECRET_KEY: my-super-secret-airflow-key
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      PYTHONPATH: /opt/airflow
 
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -106,6 +107,7 @@ services:
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
       - ./:/opt/airflow/project
+      - ./warehouse:/opt/airflow/warehouse
 
     command: airflow webserver
 
@@ -124,6 +126,7 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/airflow
       AIRFLOW__WEBSERVER__SECRET_KEY: my-super-secret-airflow-key
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      PYTHONPATH: /opt/airflow
 
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -143,6 +146,7 @@ services:
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
       - ./:/opt/airflow/project
+      - ./warehouse:/opt/airflow/warehouse
 
     command: airflow scheduler
 
