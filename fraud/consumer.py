@@ -33,7 +33,7 @@ POSTGRES_PORT = os.getenv(
 
 POSTGRES_DB = os.getenv(
     "POSTGRES_DB",
-    "retaildb",
+    "fluxguard",
 )
 
 POSTGRES_USER = os.getenv(

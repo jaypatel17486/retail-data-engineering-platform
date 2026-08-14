@@ -4,13 +4,13 @@ services:
 
   postgres:
     image: postgres:16
-    container_name: retail_postgres
+    container_name: fluxguard_postgres
     restart: always
 
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: retaildb
+      POSTGRES_DB: fluxguard
 
     ports:
       - "5432:5432"
@@ -35,19 +35,19 @@ services:
 
     environment:
       AIRFLOW__CORE__EXECUTOR: SequentialExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/airflow
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/fluxguard
       AIRFLOW__WEBSERVER__SECRET_KEY: my-super-secret-airflow-key
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
 
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: retaildb
+      POSTGRES_DB: fluxguard
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
 
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_NAME: retaildb
+      DB_NAME: fluxguard
       DB_USER: postgres
       DB_PASSWORD: postgres
 
@@ -84,20 +84,20 @@ services:
 
     environment:
       AIRFLOW__CORE__EXECUTOR: SequentialExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/airflow
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/fluxguard
       AIRFLOW__WEBSERVER__SECRET_KEY: my-super-secret-airflow-key
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
       PYTHONPATH: /opt/airflow
 
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: retaildb
+      POSTGRES_DB: fluxguard
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
 
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_NAME: retaildb
+      DB_NAME: fluxguard
       DB_USER: postgres
       DB_PASSWORD: postgres
 
@@ -130,13 +130,13 @@ services:
 
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: retaildb
+      POSTGRES_DB: fluxguard
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
 
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_NAME: retaildb
+      DB_NAME: fluxguard
       DB_USER: postgres
       DB_PASSWORD: postgres
 

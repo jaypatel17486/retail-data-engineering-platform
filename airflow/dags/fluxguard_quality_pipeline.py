@@ -9,7 +9,7 @@ from airflow.operators.python import PythonOperator
 DB_CONFIG = {
     "host": "postgres",
     "port": 5432,
-    "database": "retaildb",
+    "database": "fluxguard",
     "user": "postgres",
     "password": "postgres",
 }

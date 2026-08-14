@@ -6,7 +6,7 @@ CHECKPOINT_LOCATION = "/tmp/fluxguard-checkpoints"
 
 APP_NAME = "FluxGuardStreaming"
 
-POSTGRES_URL = "jdbc:postgresql://postgres:5432/retaildb"
+POSTGRES_URL = "jdbc:postgresql://postgres:5432/fluxguard"
 
 POSTGRES_USER = "postgres"
 
