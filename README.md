@@ -1,815 +1,666 @@
-# FluxGuard
+# 🛒 Retail Data Engineering Platform
 
-### Real-Time E-Commerce Analytics & Fraud Detection Platform
+### End-to-End Streaming, ETL & Data Warehousing Platform
 
-FluxGuard is an end-to-end real-time data engineering and fraud detection platform that processes simulated e-commerce transactions, detects suspicious activity using rule-based logic and a PyTorch machine learning model, stores operational and analytical data in PostgreSQL, and exposes live analytics through FastAPI and a React dashboard.
+An end-to-end **Data Engineering platform** designed to ingest retail transaction events, process streaming data, validate and transform records, and load analytics-ready data into a dimensional warehouse.
 
-The project combines **Data Engineering, Backend Engineering, Machine Learning, and Real-Time Analytics** in a single system.
-
----
-
-## Key Features
-
-- Real-time e-commerce transaction generation
-- Apache Kafka event streaming
-- Apache Spark Structured Streaming
-- Correlated order and payment events
-- Rule-based fraud detection
-- PyTorch fraud classification model
-- Hybrid fraud scoring
-- PostgreSQL operational database
-- Dimensional analytics warehouse
-- Apache Airflow orchestration
-- Automated data-quality checks
-- FastAPI REST API
-- React real-time dashboard
-- Fraud alerts and risk monitoring
-- Idempotent warehouse loading
+The project demonstrates a complete modern data pipeline using **Python, Apache Kafka, Apache Spark, Apache Airflow, PostgreSQL, Docker, and dimensional data modeling**.
 
 ---
 
-# Architecture
+## 🚀 Project Overview
 
-```text
-                         FLUXGUARD
+The Retail Data Engineering Platform was built to demonstrate how raw retail transaction events can move through a production-style data engineering workflow.
 
-                 E-Commerce Transaction
-                           |
-                           v
-                  Transaction Producer
-                           |
-                           v
-                     Apache Kafka
-                  (fluxguard-events)
-                           |
-             +-------------+-------------+
-             |                           |
-             v                           v
-     Spark Structured              Fraud Consumer
-        Streaming                        |
-             |                           v
-             |                   Feature Engineering
-             |                           |
-             |                +----------+----------+
-             |                |                     |
-             |                v                     v
-             |          Rule Engine          PyTorch Model
-             |                |                     |
-             |                +----------+----------+
-             |                           |
-             |                           v
-             |                    Hybrid Decision
-             |                           |
-             +---------------------------+
-                                         |
-                                         v
-                                    PostgreSQL
-                                         |
-                         +---------------+---------------+
-                         |                               |
-                         v                               v
-                      FastAPI                         Airflow
-                         |                               |
-                         v                               v
-                  React Dashboard                 Data Quality
-                                                         |
-                                                         v
-                                                 Analytics Warehouse
-                                                         |
-                                                         v
-                                               Historical Analytics
-```
-
----
-
-# Real-Time Event Pipeline
-
-FluxGuard generates correlated e-commerce transaction events.
-
-Example lifecycle:
-
-```text
-order_created
-      |
-      | same order_id
-      | same customer_id
-      | same amount
-      v
-payment_completed
-```
-
-or:
-
-```text
-order_created
-      |
-      v
-payment_failed
-```
-
-Example event:
-
-```json
-{
-  "event_id": "evt_a6e656f94982",
-  "event_type": "payment_completed",
-  "order_id": "ORD-245842",
-  "customer_id": "CUS-0536",
-  "amount": 322.75,
-  "currency": "USD",
-  "payment_method": "debit_card",
-  "device_id": "DEV-2811",
-  "billing_country": "US",
-  "shipping_country": "US"
-}
-```
-
-Events are published to:
-
-```text
-fluxguard-events
-```
-
-The `order_id` is used as the Kafka message key so events belonging to the same order can be partitioned consistently.
-
----
-
-# Fraud Detection
-
-FluxGuard uses a hybrid fraud-detection architecture.
-
-## Rule Engine
-
-The rule engine evaluates signals such as:
-
-- High transaction amount
-- Very high transaction amount
-- Billing/shipping country mismatch
-- Failed payment
-- Suspected fraud failure reason
-
-It generates:
-
-```text
-fraud_score
-risk_level
-fraud_reasons
-is_suspicious
-```
-
-Risk levels:
-
-```text
-0 - 29     LOW
-30 - 59    MEDIUM
-60 - 100   HIGH
-```
-
----
-
-## PyTorch Model
-
-FluxGuard also includes a neural-network fraud classifier built with PyTorch.
-
-Current model features include:
-
-```text
-amount
-country_mismatch
-payment_failed
-suspected_fraud_failure
-```
-
-Architecture:
-
-```text
-4 input features
-       |
-       v
-Linear(4, 16)
-       |
-      ReLU
-       |
-       v
-Linear(16, 8)
-       |
-      ReLU
-       |
-       v
-Linear(8, 1)
-       |
-       v
-Fraud Probability
-```
-
-The training pipeline performs:
-
-- Synthetic labeled dataset generation
-- Train/validation/test splitting
-- Feature standardization
-- Class-imbalance weighting
-- PyTorch training
-- Model evaluation
-- Model persistence
-- Real-time inference
-
-Evaluation includes:
-
-```text
-Accuracy
-Precision
-Recall
-F1 Score
-ROC-AUC
-```
-
-> The current model is trained on synthetic transaction data and is intended to demonstrate the complete ML engineering pipeline rather than production financial fraud detection.
-
----
-
-# Hybrid Fraud Engine
-
-FluxGuard combines explainable rules with ML predictions.
-
-```text
-                    Payment
-                       |
-            +----------+----------+
-            |                     |
-            v                     v
-       Rule Engine           PyTorch Model
-            |                     |
-       Rule Score            Probability
-            |                     |
-            +----------+----------+
-                       |
-                       v
-                  Hybrid Score
-                       |
-              +--------+--------+
-              |        |        |
-              v        v        v
-           APPROVE   REVIEW   BLOCK
-```
-
-The current experimental hybrid calculation is:
-
-```text
-40% Rule Score
-+
-60% ML Probability
-```
-
-This weighting is configurable and is not presented as an industry-standard fraud policy.
-
----
-
-# Apache Spark
-
-Spark Structured Streaming consumes FluxGuard events from Kafka.
-
-Responsibilities include:
-
-- Kafka ingestion
-- JSON parsing
-- Schema enforcement
-- Event validation
-- Timestamp conversion
-- Event deduplication
-- Watermarking
-- Order/payment stream separation
-- Fraud feature preparation
-
-Example flow:
-
-```text
-Kafka
-  |
-  v
-Spark Structured Streaming
-  |
-  v
-Parse JSON
-  |
-  v
-Validate
-  |
-  v
-Deduplicate event_id
-  |
-  +-------------------+
-  |                   |
-  v                   v
-Orders              Payments
-```
-
----
-
-# PostgreSQL
-
-FluxGuard maintains operational tables for the real-time application.
-
-```text
-transactions
-fraud_predictions
-fraud_alerts
-```
-
-### Transactions
-
-Stores payment transaction details.
-
-### Fraud Predictions
-
-Stores:
-
-```text
-rule_score
-rule_risk
-ml_probability
-ml_risk
-hybrid_score
-final_risk
-final_decision
-```
-
-### Fraud Alerts
-
-Stores transactions requiring investigation or blocking.
-
----
-
-# Analytics Warehouse
-
-FluxGuard includes a separate analytical warehouse schema:
-
-```text
-fluxguard_dw
-```
-
-Dimensions:
-
-```text
-dim_customer
-dim_payment_method
-dim_date
-```
-
-Facts:
-
-```text
-fact_transactions
-fact_fraud_predictions
-fact_fraud_alerts
-```
-
-The warehouse loader is designed to be idempotent, allowing pipelines to be rerun without duplicating previously processed events.
-
----
-
-# Apache Airflow
-
-Airflow orchestrates FluxGuard's batch and historical analytics workflows.
-
-Current pipelines include:
-
-```text
-fluxguard_analytics_pipeline
-fluxguard_quality_pipeline
-```
-
-Example analytics workflow:
-
-```text
-Database Check
-      |
-      v
-Data Quality
-      |
-      v
-Warehouse Load
-      |
-      v
-Historical Analytics
-```
-
----
-
-# Data Quality
-
-FluxGuard performs automated checks including:
-
-- Missing event IDs
-- Missing order/customer IDs
-- Invalid transaction amounts
-- Duplicate events
-- Orphan fraud predictions
-- Invalid ML probabilities
-- Invalid hybrid fraud scores
-
-Failed checks can stop downstream warehouse processing.
-
----
-
-# FastAPI Backend
-
-FluxGuard exposes its operational and analytical data through FastAPI.
-
-Run:
-
-```bash
-uvicorn fluxguard_api.main:app --reload
-```
-
-Swagger:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-Example endpoints:
-
-```text
-GET /health
-
-GET /api/v1/info
-
-GET /api/v1/transactions
-GET /api/v1/transactions/{order_id}
-
-GET /api/v1/fraud/alerts
-GET /api/v1/fraud/stats
-
-GET /api/v1/analytics/overview
-GET /api/v1/analytics/revenue
-GET /api/v1/analytics/payments
-GET /api/v1/analytics/risk-distribution
-GET /api/v1/analytics/recent-activity
-```
-
----
-
-# React Dashboard
-
-FluxGuard includes a React + Vite dashboard.
-
-The dashboard displays:
-
-- Total revenue
-- Transaction volume
-- Fraud alerts
-- Blocked transactions
-- Revenue trends
-- Payment success rate
-- Risk distribution
-- ML fraud probability
-- Live transaction activity
-- Fraud alert activity
-
-During local development, the dashboard periodically refreshes data from the FastAPI backend.
-
-Run:
-
-```bash
-cd dashboard
-npm install
-npm run dev
-```
-
-Then open:
-
-```text
-http://localhost:5173
-```
-
----
-
-# Technology Stack
-
-| Area | Technology |
-|---|---|
-| Programming | Python |
-| Streaming | Apache Kafka |
-| Stream Processing | Apache Spark Structured Streaming |
-| Machine Learning | PyTorch |
-| Database | PostgreSQL |
-| Orchestration | Apache Airflow |
-| Backend API | FastAPI |
-| Frontend | React |
-| Frontend Build Tool | Vite |
-| Visualization | Recharts |
-| Containers | Docker / Docker Compose |
-| Testing | Pytest |
-| ML Utilities | scikit-learn, pandas |
-
----
-
-# Project Structure
-
-```text
-fluxguard/
-|
-├── airflow/
-│   └── dags/
-│       ├── fluxguard_analytics_pipeline.py
-│       └── fluxguard_quality_pipeline.py
-|
-├── database/
-│   └── fluxguard_schema.sql
-|
-├── dashboard/
-│   └── src/
-|
-├── fluxguard_api/
-│   ├── main.py
-│   ├── database.py
-│   ├── models.py
-│   └── routes/
-│       ├── analytics.py
-│       ├── fraud.py
-│       └── transactions.py
-|
-├── fraud/
-│   ├── consumer.py
-│   ├── engine.py
-│   ├── rules.py
-│   ├── evaluation/
-│   └── ml/
-│       ├── generate_dataset.py
-│       ├── model.py
-│       ├── predict.py
-│       ├── train.py
-│       └── models/
-|
-├── spark/
-│   ├── config/
-│   ├── jobs/
-│   │   ├── streaming.py
-│   │   └── fraud_streaming.py
-│   └── schemas/
-|
-├── streaming/
-│   ├── events.py
-│   └── producer.py
-|
-├── tests/
-│   └── api/
-|
-├── warehouse/
-│   ├── loaders/
-│   │   └── load_fluxguard_warehouse.py
-│   └── sql/
-│       └── fluxguard_warehouse.sql
-|
-├── docker-compose.yml
-├── requirements.txt
-├── .env.example
-└── README.md
-```
-
----
-
-# Running FluxGuard Locally
-
-## 1. Clone
-
-```bash
-git clone <repository-url>
-cd fluxguard
-```
-
-## 2. Python environment
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-```
-
-Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-## 3. Environment configuration
-
-```bash
-cp .env.example .env
-```
-
-Review the values in `.env`.
-
-## 4. Start infrastructure
-
-```bash
-docker compose up -d
-```
-
-## 5. Initialize operational database
-
-```bash
-docker compose exec -T postgres \
-  psql -U postgres -d fluxguard \
-  < database/fluxguard_schema.sql
-```
-
-## 6. Initialize warehouse
-
-```bash
-docker compose exec -T postgres \
-  psql -U postgres -d fluxguard \
-  < warehouse/sql/fluxguard_warehouse.sql
-```
-
-## 7. Start fraud consumer
-
-```bash
-python -m fraud.consumer
-```
-
-## 8. Start transaction producer
-
-In another terminal:
-
-```bash
-python -m streaming.producer
-```
-
-## 9. Start API
-
-```bash
-uvicorn fluxguard_api.main:app --reload
-```
-
-## 10. Start dashboard
-
-```bash
-cd dashboard
-npm install
-npm run dev
-```
-
----
-
-# Machine Learning
-
-Generate synthetic training data:
-
-```bash
-python -m fraud.ml.generate_dataset
-```
-
-Train the PyTorch model:
-
-```bash
-python -m fraud.ml.train
-```
-
-Evaluate the rule engine:
-
-```bash
-python -m fraud.evaluation.evaluate_rules
-```
-
----
-
-# Warehouse
-
-Run the warehouse loader manually:
-
-```bash
-python -m warehouse.loaders.load_fluxguard_warehouse
-```
-
-The same process can be orchestrated through Airflow.
-
----
-
-# Testing
-
-Run FluxGuard API tests:
-
-```bash
-python -m pytest tests/api -v
-```
-
-Additional unit and integration coverage can be added for:
-
-```text
-Event generation
-Fraud rules
-ML inference
-Kafka producer/consumer
-Warehouse loading
-API endpoints
-Data quality
-```
-
----
-
-# Engineering Concepts Demonstrated
-
-FluxGuard demonstrates:
-
-### Data Engineering
-
-- Event-driven architecture
-- Kafka partitioning
-- Structured streaming
-- Schema enforcement
-- Watermarking
-- Deduplication
-- Incremental ETL
-- Idempotent data loading
-- Dimensional modeling
-- Workflow orchestration
-- Automated data-quality checks
-
-### Software Engineering
-
-- Modular Python architecture
-- REST API design
-- Connection pooling
-- Environment-based configuration
-- Dockerized services
-- API testing
-- Frontend/backend separation
-
-### Machine Learning Engineering
-
-- Synthetic dataset generation
-- Feature engineering
-- Class imbalance handling
-- Neural-network training
-- Model serialization
-- Real-time inference
-- Rule-vs-ML evaluation
-- Hybrid decision systems
-
----
-
-# Current Limitations
-
-FluxGuard is a portfolio and engineering simulation project.
-
-Current limitations include:
-
-- Fraud labels are synthetically generated.
-- The ML model is not trained on real financial transaction data.
-- Fraud thresholds and hybrid weights are experimental.
-- The dashboard currently uses periodic API polling rather than server-pushed events.
-- Additional production observability, authentication, and security controls would be required for a real financial system.
-
----
-
-# Future Improvements
-
-Planned improvements include:
-
-- WebSocket dashboard updates
-- Kafka dead-letter topics
-- Manual Kafka offset management
-- Stronger idempotency guarantees
-- Prometheus + Grafana monitoring
-- Structured application logging
-- ML model versioning
-- Automated model retraining
-- Feature-store architecture
-- Drift monitoring
-- API authentication
-- CI/CD with GitHub Actions
-- Cloud deployment
-
----
-
-# Why FluxGuard?
-
-The goal of FluxGuard is to demonstrate how multiple engineering disciplines work together in a realistic event-driven system.
-
-Instead of building isolated Kafka, Spark, API, or ML demos, FluxGuard connects them into one pipeline:
+The platform covers the complete lifecycle of data:
 
 ```text
 Generate
-   |
-Stream
-   |
-Process
-   |
-Detect
-   |
-Store
-   |
-Orchestrate
-   |
-Serve
-   |
-Visualize
+   ↓
+Ingest
+   ↓
+Validate
+   ↓
+Transform
+   ↓
+Load
+   ↓
+Model
+   ↓
+Analyze
 ```
 
-This makes the project useful for demonstrating **Data Engineering, Software Engineering, and Machine Learning Engineering** skills in one system.
+The project combines:
+
+* Event-driven data ingestion
+* Stream processing
+* ETL pipeline development
+* Data-quality validation
+* Workflow orchestration
+* Relational data modeling
+* Dimensional modeling
+* Data warehousing
+* Audit logging
+* Containerized infrastructure
 
 ---
 
-## License
+# 🏗️ Architecture
 
-See [LICENSE](LICENSE).
+```text
+                  RETAIL DATA PLATFORM
+
+                 Retail Data Generator
+                         │
+                         ▼
+                   Apache Kafka
+                         │
+                         ▼
+                     Apache Spark
+                         │
+                 Stream Processing
+                         │
+                         ▼
+                     PostgreSQL
+                         │
+                  ETL / Modeling
+                         │
+              ┌──────────┴──────────┐
+              │                     │
+              ▼                     ▼
+       Data Validation        Apache Airflow
+                                    │
+                                    ▼
+                              retail_etl
+                                    │
+                                    ▼
+                           Load Dimensions
+                                    │
+                                    ▼
+                            Load Fact Sales
+                                    │
+                                    ▼
+                             Audit Logging
+                                    │
+                                    ▼
+                         Analytics Warehouse
+```
+
+---
+
+# ⚡ Key Engineering Highlights
+
+* Processed **1,111+ retail transaction events**
+* Built a **5-stage ETL pipeline**
+* Implemented **14 PostgreSQL data models**
+* Designed an analytics-ready **Star Schema**
+* Used **Apache Kafka** for event streaming
+* Used **Apache Spark Structured Streaming** for stream processing
+* Used **Apache Airflow** for pipeline orchestration
+* Added data-quality validation throughout the ETL workflow
+* Implemented dimensional and fact-table loading
+* Added ETL audit logging
+* Containerized the environment using **Docker**
+* Achieved a measured **0.39-second ETL execution time**
+
+---
+
+# 🔄 ETL Pipeline
+
+The core pipeline follows five stages:
+
+```text
+┌─────────────┐
+│   EXTRACT   │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│  VALIDATE   │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│DATA QUALITY │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│  TRANSFORM  │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│    LOAD     │
+└─────────────┘
+```
+
+## 1. Extract
+
+Retail transaction data enters the platform and is prepared for downstream processing.
+
+The architecture uses **Apache Kafka** as the event-streaming layer.
+
+---
+
+## 2. Validate
+
+Incoming records are validated before being accepted into downstream analytical workflows.
+
+Validation helps prevent malformed or incomplete records from contaminating transformed datasets.
+
+---
+
+## 3. Data Quality
+
+Data-quality checks are applied before warehouse loading.
+
+This stage helps ensure that downstream analytical tables contain consistent and usable data.
+
+---
+
+## 4. Transform
+
+Raw retail events are converted into structured, analytics-ready records.
+
+Transformations prepare the data for relational and dimensional models.
+
+---
+
+## 5. Load
+
+Validated and transformed records are loaded into the analytical data model.
+
+The Airflow workflow follows the dependency:
+
+```text
+Load Dimensions
+       │
+       ▼
+Load Fact Sales
+       │
+       ▼
+Audit Logging
+```
+
+Loading dimensions before the fact table preserves the intended dimensional-model relationships.
+
+---
+
+# 📡 Streaming Pipeline
+
+The project demonstrates an event-driven architecture built around Kafka and Spark.
+
+```text
+Retail Events
+     │
+     ▼
+Apache Kafka
+     │
+     ▼
+Apache Spark
+     │
+     ▼
+Process / Transform
+     │
+     ▼
+PostgreSQL
+```
+
+### Apache Kafka
+
+Kafka provides the streaming ingestion layer for retail transaction events.
+
+It decouples event production from downstream processing and provides the foundation for the streaming architecture.
+
+### Apache Spark
+
+Spark provides the processing layer between Kafka and downstream storage.
+
+The platform uses Spark Structured Streaming as part of the retail transaction processing workflow.
+
+---
+
+# 🗄️ Data Warehouse
+
+The project transforms operational retail data into an analytics-oriented dimensional model.
+
+The documented Star Schema centers around:
+
+```text
+                    dim_customer
+                         │
+                         │
+                         ▼
+dim_product ───────► fact_sales ◄─────── dim_date
+```
+
+The dimensional model separates descriptive business attributes from measurable sales activity.
+
+---
+
+## Dimension Tables
+
+### `dim_customer`
+
+Contains customer-related attributes used for analytical grouping and filtering.
+
+### `dim_product`
+
+Contains product-related descriptive attributes.
+
+### `dim_date`
+
+Provides a reusable date dimension for time-based analysis.
+
+---
+
+## Fact Table
+
+### `fact_sales`
+
+Acts as the central fact table for retail sales analytics.
+
+```text
+              dim_customer
+                    │
+                    ▼
+dim_product → fact_sales ← dim_date
+```
+
+This design supports analytical questions across dimensions such as:
+
+* Customer
+* Product
+* Date
+* Sales activity
+
+---
+
+# 🧱 Data Modeling
+
+The project includes **14 PostgreSQL data models** across the platform.
+
+The modeling layer demonstrates concepts including:
+
+* Relational modeling
+* Dimensional modeling
+* Fact and dimension separation
+* Analytical warehouse design
+* ETL dependency management
+
+The warehouse is structured to transform raw operational data into datasets better suited for analytical workloads.
+
+---
+
+# 🌬️ Apache Airflow
+
+**Apache Airflow** orchestrates the ETL workflow.
+
+The documented DAG is:
+
+```text
+retail_etl
+```
+
+Its high-level dependency flow is:
+
+```text
+retail_etl
+    │
+    ▼
+Load Dimensions
+    │
+    ▼
+Load Fact Sales
+    │
+    ▼
+Audit Logging
+```
+
+Airflow provides explicit dependencies between warehouse-loading stages and makes the ETL process repeatable and observable.
+
+---
+
+# 🔍 Data Quality
+
+Data quality is incorporated as a dedicated stage of the pipeline rather than being treated only as a final check.
+
+```text
+Extract
+   │
+   ▼
+Validate
+   │
+   ▼
+Data Quality
+   │
+   ▼
+Transform
+   │
+   ▼
+Load
+```
+
+This design helps catch problematic records before they propagate into downstream analytical models.
+
+---
+
+# 📋 Audit Logging
+
+The Airflow workflow includes an **audit logging** stage after warehouse loading.
+
+```text
+Dimensions
+    ↓
+Fact Sales
+    ↓
+Audit Log
+```
+
+Audit information provides visibility into ETL execution and helps make pipeline behavior easier to track.
+
+---
+
+# 🛠️ Technology Stack
+
+| Area                             | Technology                        |
+| -------------------------------- | --------------------------------- |
+| Programming                      | Python                            |
+| Query Language                   | SQL                               |
+| Event Streaming                  | Apache Kafka                      |
+| Stream Processing                | Apache Spark Structured Streaming |
+| Workflow Orchestration           | Apache Airflow                    |
+| Operational / Warehouse Database | PostgreSQL                        |
+| Data Modeling                    | Star Schema                       |
+| Infrastructure                   | Docker                            |
+| Data Engineering                 | ETL Pipelines                     |
+| Warehousing                      | Dimensional Modeling              |
+
+---
+
+# 📊 Project Results
+
+| Metric                  |          Result |
+| ----------------------- | --------------: |
+| Retail Events Processed |      **1,111+** |
+| PostgreSQL Data Models  |          **14** |
+| ETL Stages              |           **5** |
+| Measured ETL Execution  |    **0.39 sec** |
+| Warehouse Model         | **Star Schema** |
+
+These measurements demonstrate the project at its current portfolio-scale workload and should not be interpreted as production-scale performance benchmarks.
+
+---
+
+# 🔁 End-to-End Data Flow
+
+```text
+                    RAW RETAIL DATA
+                           │
+                           ▼
+                    EVENT GENERATION
+                           │
+                           ▼
+                      APACHE KAFKA
+                           │
+                           ▼
+                      APACHE SPARK
+                           │
+                           ▼
+                       VALIDATION
+                           │
+                           ▼
+                     DATA QUALITY
+                           │
+                           ▼
+                      TRANSFORM
+                           │
+                           ▼
+                      POSTGRESQL
+                           │
+                           ▼
+                    APACHE AIRFLOW
+                           │
+                ┌──────────┴──────────┐
+                ▼                     ▼
+          DIMENSIONS              FACT SALES
+                └──────────┬──────────┘
+                           ▼
+                     AUDIT LOGGING
+                           │
+                           ▼
+                 ANALYTICS WAREHOUSE
+```
+
+---
+
+# 🧠 Engineering Concepts Demonstrated
+
+## Data Engineering
+
+* ETL pipeline design
+* Event-driven architecture
+* Stream processing
+* Data validation
+* Data-quality engineering
+* Pipeline orchestration
+* Data warehousing
+* Dimensional modeling
+* Star Schema design
+* Audit logging
+
+## Apache Kafka
+
+* Streaming ingestion
+* Event-based pipeline architecture
+* Producer/consumer separation
+
+## Apache Spark
+
+* Structured Streaming
+* Streaming transformations
+* Processing Kafka event data
+
+## Apache Airflow
+
+* DAG-based orchestration
+* Task dependencies
+* Warehouse loading
+* ETL scheduling
+* Audit workflow integration
+
+## PostgreSQL
+
+* Relational data modeling
+* Analytical data modeling
+* Fact and dimension tables
+* SQL-based transformations
+
+## Infrastructure
+
+* Dockerized development environment
+* Reproducible service configuration
+* Multi-component data platform architecture
+
+---
+
+# 📁 Repository Structure
+
+The repository currently contains components and documentation from multiple stages of development.
+
+For a dedicated Retail repository, the recommended public structure is:
+
+```text
+retail-data-engineering-platform/
+│
+├── airflow/
+│   └── dags/
+│       └── retail_etl.py
+│
+├── src/
+│   ├── generators/
+│   ├── streaming/
+│   ├── processing/
+│   └── validation/
+│
+├── warehouse/
+│   ├── loaders/
+│   └── sql/
+│
+├── tests/
+│
+├── docs/
+│   ├── architecture.png
+│   ├── warehouse-star-schema.png
+│   ├── airflow-retail-etl.png
+│   └── etl-audit.png
+│
+├── docker-compose.yml
+├── requirements.txt
+├── .env.example
+├── README.md
+└── LICENSE
+```
+
+> Update this tree to match the final Retail-only repository before publishing.
+
+---
+
+# 📸 Architecture & Pipeline Screenshots
+
+The project documentation includes screenshots for the warehouse, Airflow workflows, ETL auditing, and Docker environment.
+
+Recommended GitHub layout:
+
+### Star Schema
+
+```markdown
+![Retail Warehouse Star Schema](docs/warehouse-star-schema.png)
+```
+
+### Airflow ETL Pipeline
+
+```markdown
+![Retail ETL Airflow DAG](docs/airflow-retail-etl.png)
+```
+
+### ETL Audit
+
+```markdown
+![ETL Audit](docs/etl-audit.png)
+```
+
+### Docker Infrastructure
+
+```markdown
+![Docker Infrastructure](docs/docker-container.png)
+```
+
+Rename the existing screenshot files to GitHub-friendly filenames before adding these image links.
+
+---
+
+# ⚙️ Running the Project
+
+The uploaded archive does not contain enough Retail-specific implementation detail to verify the exact startup commands without mixing them with the FluxGuard application.
+
+Before publishing this section, add the actual commands used by the Retail implementation.
+
+A typical sequence should document:
+
+```text
+1. Start infrastructure
+2. Initialize PostgreSQL
+3. Start Kafka
+4. Start the retail event producer
+5. Start Spark processing
+6. Start Airflow
+7. Run the retail_etl DAG
+8. Verify warehouse tables
+```
+
+Do not copy FluxGuard startup commands into this repository unless the Retail implementation actually uses them.
+
+---
+
+# 🎯 Why This Project?
+
+The goal of the Retail Data Engineering Platform is to demonstrate how multiple data-engineering technologies can work together as one complete pipeline.
+
+Instead of building isolated demonstrations of Kafka, Spark, Airflow, or PostgreSQL, the project connects the technologies into an end-to-end workflow:
+
+```text
+Generate
+   ↓
+Stream
+   ↓
+Process
+   ↓
+Validate
+   ↓
+Transform
+   ↓
+Model
+   ↓
+Load
+   ↓
+Orchestrate
+   ↓
+Analyze
+```
+
+The project demonstrates practical experience across the data lifecycle—from incoming events to analytics-ready warehouse models.
+
+---
+
+# 🔮 Future Improvements
+
+Potential improvements include:
+
+* Cloud deployment
+* CI/CD pipeline
+* Expanded automated testing
+* Pipeline observability and alerting
+* Larger-scale streaming workloads
+* Additional dimensional models
+* Incremental warehouse loading
+* Data lineage
+* Schema evolution handling
+* Dead-letter queues
+* Infrastructure as Code
+* Automated data-quality reporting
+
+---
+
+# 👨‍💻 Author
+
+## Jay Patel
+
+Computer Science student at **California State University, Northridge**
+
+Focused on:
+
+* Data Engineering
+* Streaming Systems
+* ETL Pipelines
+* Data Warehousing
+* Cloud Data Infrastructure
+
+🌐 **Portfolio:**
+[jay-patel-zeta.vercel.app](https://jay-patel-zeta.vercel.app)
+
+💼 **LinkedIn:**
+[Add LinkedIn URL](YOUR_LINKEDIN_URL)
+
+---
+
+## ⭐ Support
+
+If you found this project useful or interesting, consider giving the repository a ⭐.
+
+---
+
+<p align="center">
+  <b>From raw retail events to analytics-ready data.</b>
+</p>
